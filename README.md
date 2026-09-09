@@ -83,6 +83,12 @@ pnpm export:android
 
 Lệnh `export:android` tạo bundle Android để kiểm tra mã; kết quả đó không phải file APK.
 
+### Ký bản release
+
+Bản release sử dụng khóa ký riêng. Cấu hình ký được tạo lại bởi plugin của dự án; khóa và mật khẩu không nằm trong repository. Khi tự build release, cần chuẩn bị khóa tại `app/.private/readsession-release.jks` với alias `readsession` và file `app/.private/signing.properties` chứa các thuộc tính `storePassword`, `keyPassword`. Thiếu thông tin ký, build release sẽ dừng thay vì dùng khóa debug.
+
+Giữ khóa ký cho các bản cập nhật tiếp theo. Không đưa thư mục `.private` lên GitHub.
+
 ## Cài bằng APK
 
 Khi có bản release, tải APK từ mục **Releases** của repository, mở file trên Android và làm theo hướng dẫn cài đặt. Bản APK release sẽ không yêu cầu máy chủ phát triển. Hiện chưa có bản release độc lập để tải.
