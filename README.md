@@ -18,7 +18,7 @@ Ví dụ, với sách có mốc cuối là 110, phiên **0 → 98** ghi nhận 9
 
 ## Trạng thái
 
-Dự án đang ở bản **0.1**, dành cho thử nghiệm và phát triển. Bản development cần kết nối với máy chủ phát triển trên máy tính. APK release chạy độc lập chưa được phát hành.
+Dự án đang ở bản **0.1.0 draft**, dành cho thử nghiệm. [Tải APK chạy độc lập](releases/ReadSession-0.1.0-draft.apk?raw=true): không cần máy tính, Expo Go hoặc máy chủ phát triển.
 
 Quét ISBN, tài khoản, đồng bộ nhiều thiết bị và nhắc đọc chưa có trong phiên bản này.
 
@@ -91,10 +91,16 @@ Giữ khóa ký cho các bản cập nhật tiếp theo. Không đưa thư mục
 
 ## Cài bằng APK
 
-Khi có bản release, tải APK từ mục **Releases** của repository, mở file trên Android và làm theo hướng dẫn cài đặt. Bản APK release sẽ không yêu cầu máy chủ phát triển. Hiện chưa có bản release độc lập để tải.
+1. Trên điện thoại, [tải ReadSession 0.1.0 draft](releases/ReadSession-0.1.0-draft.apk?raw=true).
+2. Mở APK và cho phép trình duyệt hoặc trình quản lý tệp cài ứng dụng khi Android yêu cầu.
+3. Cài đặt rồi mở ReadSession. Ứng dụng chạy độc lập, kể cả khi không kết nối máy tính.
+
+Yêu cầu Android 7.0 trở lên, thiết bị ARM 32-bit hoặc 64-bit. Nếu đã cài bản development và gặp lỗi xung đột chữ ký, gỡ bản cũ trước khi cài; thao tác này xóa dữ liệu của bản cũ.
+
+APK dùng chữ ký release riêng và chứa sẵn mã ứng dụng. Đây là bản draft: quá trình build và chữ ký đã được kiểm tra; bản release này cần được thử nghiệm thêm trên điện thoại. Có thể đối chiếu tệp tải về với [mã SHA-256](releases/ReadSession-0.1.0-draft.apk.sha256).
 
 ## Lưu ý khi thử nghiệm
 
 Nếu ứng dụng bị hệ thống tắt giữa phiên, ReadSession khôi phục bản nháp ở mốc lưu gần nhất và tạm dừng. Hãy kiểm tra lại thời lượng trước khi lưu. Khi nhận cuộc gọi, tạm dừng timer thủ công.
 
-Repository chỉ chứa mã nguồn và cấu hình công khai. File mới được bỏ qua mặc định; khi bổ sung mã hoặc tài nguyên, cần kiểm tra nội dung và cập nhật danh sách cho phép trong `.gitignore`.
+Repository chứa mã nguồn, cấu hình công khai và APK draft đã kiểm tra. File mới được bỏ qua mặc định; khi bổ sung mã hoặc tài nguyên, cần kiểm tra nội dung và cập nhật danh sách cho phép trong `.gitignore`.

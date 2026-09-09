@@ -9,6 +9,15 @@ if (readSessionSigningFile.exists()) {
     readSessionSigningFile.withInputStream { readSessionSigning.load(it) }
 }
 android {
+    // Keep local machine paths out of native compiler metadata and file macros.
+    def privateRoots = [gradle.gradleUserHomeDir, rootProject.projectDir.parentFile]
+    def prefixMaps = privateRoots.withIndex().collect { dir, index ->
+        'add_compile_options([=[-ffile-prefix-map=' + dir.absolutePath.replace(File.separatorChar, '/' as char) + '=/build/root' + index + ']=])'
+    }.join('\\n')
+    def privacyCmake = layout.buildDirectory.file('readsession/privacy.cmake').get().asFile
+    privacyCmake.parentFile.mkdirs()
+    privacyCmake.text = prefixMaps
+    defaultConfig.externalNativeBuild.cmake.arguments '-DCMAKE_PROJECT_INCLUDE=' + privacyCmake.absolutePath.replace(File.separatorChar, '/' as char)
     signingConfigs {
         release {
             storeFile rootProject.file('../.private/readsession-release.jks')
@@ -29,8 +38,9 @@ gradle.taskGraph.whenReady { graph ->
 `;
 
 function applySigning(contents) {
-  if (contents.includes(marker)) return contents;
-  return contents + '\n' + signing;
+  const existing = contents.indexOf(marker);
+  const base = existing >= 0 ? contents.slice(0, existing) : contents;
+  return base.trimEnd() + '\n' + signing;
 }
 
 module.exports = function withReleaseSigning(config) {

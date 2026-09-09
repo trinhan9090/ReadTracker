@@ -72,3 +72,8 @@
 *.pem
 *.p12
 *.pfx
+
+# Reviewed standalone draft; all other generated packages remain ignored.
+!/releases/
+!/releases/ReadSession-0.1.0-draft.apk
+!/releases/ReadSession-0.1.0-draft.apk.sha256
