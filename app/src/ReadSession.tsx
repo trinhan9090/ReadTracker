@@ -6,7 +6,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
+  Linking,
   ScrollView,
   Text,
   useColorScheme,
@@ -34,8 +34,14 @@ import {
   validDate,
   validPages,
   validateBackup,
-  weeklyStreak,
+  dailyStreak,
+  dailyGoal,
+  daySeconds,
+  validGoal,
 } from "./model";
+import { IsbnTools } from "./IsbnTools";
+import { normalizeIsbn } from "./isbn";
+import { Pressable, SoundProvider } from "./sound";
 import { load, persist } from "./storage";
 import { Button, Field, Cover, light, dark, styles } from "./ui";
 
@@ -57,6 +63,7 @@ function Main() {
     total: "",
     position: "0",
     cover: "",
+    isbn: "",
     completed: false,
     reflection: "",
   });
@@ -69,6 +76,9 @@ function Main() {
     date: localDate(),
     note: "",
   });
+  const [sessionGoal, setSessionGoal] = useState("20");
+  const [dailyInput, setDailyInput] = useState("");
+  useEffect(() => { setDailyInput(state.settings.dailyGoalMinutes === undefined ? "" : String(state.settings.dailyGoalMinutes)); }, [state.settings.dailyGoalMinutes]);
   const [start, setStart] = useState("0");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -163,6 +173,9 @@ function Main() {
   const readingBook = books.find((b) => b.id === draft?.bookId);
   const detail = state.books.find((b) => b.id === bookId);
   const sessions = liveSessions(state);
+  const today = localDate(new Date(now));
+  const todaySeconds = daySeconds(sessions, today);
+  const targetSeconds = dailyGoal(state.settings) * 60;
   const monthly = sessions.filter((s) => s.date.startsWith(month));
   const shown = monthly
     .filter((s) => !historyBook || s.bookId === historyBook)
@@ -185,6 +198,7 @@ function Main() {
       total: String(b?.total ?? ""),
       position: String(b?.position ?? 0),
       cover: b?.cover ?? "",
+      isbn: b?.isbn ?? "",
       completed: b?.completed ?? false,
       reflection: b?.reflection ?? "",
     });
@@ -216,6 +230,8 @@ function Main() {
       );
       return;
     }
+    const isbn = bookForm.isbn.trim() ? normalizeIsbn(bookForm.isbn) : undefined;
+    if (isbn === null) { message(t("ISBN không hợp lệ.", "Invalid ISBN.")); return; }
     const old = state.books.find((b) => b.id === bookId);
     const b: Book = {
       ...old,
@@ -225,6 +241,7 @@ function Main() {
       total,
       position,
       cover: bookForm.cover || undefined,
+      isbn,
       completed: bookForm.completed || position === total,
       reflection: bookForm.reflection,
       createdAt: old?.createdAt ?? Date.now(),
@@ -241,9 +258,20 @@ function Main() {
       setModal(null);
     }
   }
-  async function pickCover() {
+  async function pickCover(camera = false) {
     try {
-      const r = await ImagePicker.launchImageLibraryAsync({
+      if (camera) {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert("ReadSession", t("Cho phép camera để chụp ảnh bìa. Bạn vẫn có thể chọn ảnh có sẵn.", "Allow camera access to take a cover photo. You can still choose an existing image."), [
+            { text: t("Đóng", "Close"), style: "cancel" },
+            { text: t("Mở cài đặt", "Open settings"), onPress: () => { void Linking.openSettings(); } },
+          ]);
+          return;
+        }
+      }
+      const launch = camera ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+      const r = await launch({
         mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [3, 4],
@@ -274,6 +302,8 @@ function Main() {
   }
   function begin() {
     if (!chosen || ref.current.draft) return;
+    const goal = sessionGoal.trim() ? Number(sessionGoal) : undefined;
+    if (goal !== undefined && !validGoal(goal)) { message(t("Mục tiêu cần là số phút nguyên từ 1 đến 1440, hoặc để trống.", "Goal must be 1–1440 whole minutes, or blank.")); return; }
     const n = Number(start);
     if (!start.trim() || !validPages(n, n, chosen.total)) {
       message(t("Mốc bắt đầu không hợp lệ.", "Invalid start position."));
@@ -291,6 +321,7 @@ function Main() {
             bookId: chosen.id,
             start: n,
             elapsed: 0,
+            goalMinutes: goal,
             runningSince: stamp,
             checkpoint: stamp,
             date: localDate(),
@@ -380,6 +411,7 @@ function Main() {
       start: startValue,
       end,
       seconds,
+      goalMinutes: manual ? old?.goalMinutes : d?.goalMinutes,
       date,
       note: f?.note ?? d!.note,
       createdAt: old?.createdAt ?? Date.now(),
@@ -630,6 +662,7 @@ function Main() {
           {s.note}
         </Text>
       )}
+      {s.goalMinutes !== undefined && <Text style={{ color: c.green, fontSize: 12 }}>{t("Mục tiêu phiên", "Session goal")}: {s.goalMinutes} {t("phút", "min")} · {s.seconds >= s.goalMinutes * 60 ? t("Đã đạt", "Reached") : t("Chưa đạt", "Not reached")}</Text>}
     </Pressable>
   );
   if (!ready)
@@ -646,6 +679,7 @@ function Main() {
       </SafeAreaView>
     );
   return (
+    <SoundProvider enabled={state.settings.soundEnabled ?? false}>
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <StatusBar style={c === dark ? "light" : "dark"} />
       <View style={styles.header}>
@@ -675,7 +709,7 @@ function Main() {
                 : t("Theo cách của bạn", "Make it yours")}
           </Text>
         </View>
-        <Text style={{ color: c.green, padding: 8 }}>0.1</Text>
+        <Text style={{ color: c.green, padding: 8 }}>0.2</Text>
       </View>
       <ScrollView
         contentContainerStyle={{
@@ -720,6 +754,12 @@ function Main() {
                 >
                   {clock(draft ? duration(draft, now) : 0)}
                 </Text>
+                {draft?.goalMinutes !== undefined && <Text accessibilityLiveRegion="polite" style={{ color: c.green, textAlign: "center" }}>
+                  {duration(draft, now) >= draft.goalMinutes * 60
+                    ? t("✓ Đã đạt mục tiêu phiên · Bạn có thể tiếp tục đọc", "✓ Session goal reached · Keep reading if you like")
+                    : `${t("Còn", "Remaining")} ${clock(draft.goalMinutes * 60 - duration(draft, now))}`}
+                  {` · ${draft.goalMinutes} ${t("phút", "min")}`}
+                </Text>}
                 {(readingBook ?? chosen)
                   ? bookRow((readingBook ?? chosen)!, () => {
                       if (!draft) {
@@ -806,8 +846,8 @@ function Main() {
                   t("trang trong tháng", "pages this month"),
                 ],
                 [
-                  String(weeklyStreak(sessions)),
-                  t("tuần liên tiếp", "week streak"),
+                  String(dailyStreak(sessions, state.settings, today)),
+                  t("ngày liên tiếp", "day streak"),
                 ],
               ].map(([value, name]) => (
                 <View
@@ -831,6 +871,12 @@ function Main() {
                 </View>
               ))}
             </View>
+            {card(<>
+              {heading("Mục tiêu hôm nay", "Today's goal")}
+              <Text style={{ color: c.ink, fontSize: 22 }}>{clock(todaySeconds)} / {dailyGoal(state.settings)} {t("phút", "min")}</Text>
+              <View style={{ height: 8, borderRadius: 4, backgroundColor: c.soft }}><View style={{ height: 8, borderRadius: 4, backgroundColor: c.green, width: `${Math.min(100, todaySeconds / targetSeconds * 100)}%` }} /></View>
+              {label(todaySeconds >= targetSeconds ? "✓ Đã đạt mục tiêu ngày" : "Chưa đạt · Cộng các phiên đã lưu trong hôm nay", todaySeconds >= targetSeconds ? "✓ Daily goal reached" : "Not reached · Counts today's saved sessions")}
+            </>)}
             {heading("Nhịp đọc trong tháng", "This month’s rhythm")}
             <View
               style={{
@@ -859,7 +905,7 @@ function Main() {
                     style={{
                       flex: 1,
                       height: Math.max(3, (sec / max) * 65),
-                      backgroundColor: sec ? c.green : c.line,
+                      backgroundColor: sec >= targetSeconds ? c.green : sec ? c.muted : c.line,
                       borderRadius: 3,
                     }}
                   />
@@ -870,7 +916,7 @@ function Main() {
               style={{ flexDirection: "row", justifyContent: "space-between" }}
             >
               {label("Ngày 1", "Day 1", 11)}
-              {label("Thời gian đọc theo ngày", "Daily reading time", 11)}
+              {label("Xanh: đạt mục tiêu · Xám: chưa đạt", "Green: goal reached · Gray: below goal", 11)}
             </View>
             <View
               style={{
@@ -985,6 +1031,21 @@ function Main() {
         )}
         {tab === "settings" && (
           <>
+            {heading("Mục tiêu đọc", "Reading goals")}
+            {card(<>
+              <Field c={c} numeric label={t("Mục tiêu ngày (phút)", "Daily goal (minutes)")} value={dailyInput} onChange={setDailyInput} placeholder={t("Để trống: 5 phút", "Blank: 5 minutes")} />
+              {label("Cộng tất cả phiên trong ngày. Để trống tương đương 5 phút. Đổi mục tiêu sẽ tính lại toàn bộ chuỗi theo mục tiêu hiện tại; phiên chưa đạt vẫn được lưu.", "Adds all sessions per day. Blank means 5 minutes. Changing this recalculates all streak history using the current goal; shorter sessions are still saved.")}
+              <Button c={c} label={t("Lưu mục tiêu ngày", "Save daily goal")} onPress={() => {
+                const minutes = dailyInput.trim() ? Number(dailyInput) : undefined;
+                if (minutes !== undefined && !validGoal(minutes)) { message(t("Nhập số phút nguyên từ 1 đến 1440, hoặc để trống.", "Enter 1–1440 whole minutes, or leave blank.")); return; }
+                if (commit({ ...ref.current, settings: { ...ref.current.settings, dailyGoalMinutes: minutes } })) message(t("Đã lưu và tính lại chuỗi ngày.", "Saved and recalculated your daily streak."));
+              }} />
+            </>)}
+            {heading("Âm thanh", "Sound")}
+            {card(<>
+              <Button c={c} secondary label={(state.settings.soundEnabled ? "✓ " : "") + t("Âm thanh khi bấm nút", "Button sounds")} onPress={() => commit({ ...ref.current, settings: { ...ref.current.settings, soundEnabled: !ref.current.settings.soundEnabled } })} />
+              {label("Âm thanh ngắn, nhẹ. Mặc định tắt; khi bật, dùng âm lượng đa phương tiện của điện thoại.", "A short, gentle tap. Off by default; uses the phone's media volume when enabled.")}
+            </>)}
             {heading("Hiển thị", "Appearance")}
             {card(
               <>
@@ -1066,8 +1127,8 @@ function Main() {
               </>,
             )}
             {label(
-              "ReadSession 0.1 · Bản draft Android\nKhông tài khoản · Không quảng cáo · Dùng ngoại tuyến",
-              "ReadSession 0.1 · Android draft\nNo account · No ads · Works offline",
+              "ReadSession 0.2 · Bản draft Android\nKhông tài khoản · Không quảng cáo · Dùng ngoại tuyến",
+              "ReadSession 0.2 · Android draft\nNo account · No ads · Works offline",
             )}
           </>
         )}
@@ -1154,6 +1215,7 @@ function Main() {
             >
               {modal === "book" && (
                 <>
+                  <IsbnTools c={c} t={t} value={bookForm.isbn} onChange={(isbn) => setBookForm((f) => ({ ...f, isbn }))} onFound={(book) => setBookForm((f) => ({ ...f, title: f.title || book.title, author: f.author || book.author, total: f.total || book.total }))} />
                   <Field
                     c={c}
                     label={t("Tên sách *", "Title *")}
@@ -1201,8 +1263,9 @@ function Main() {
                     secondary
                     c={c}
                     label={t("Chọn ảnh bìa", "Choose cover")}
-                    onPress={pickCover}
+                    onPress={() => pickCover(false)}
                   />
+                  <Button c={c} secondary label={t("Chụp ảnh bìa", "Take cover photo")} onPress={() => pickCover(true)} />
                   {!!bookForm.cover && (
                     <Button
                       secondary
@@ -1251,6 +1314,8 @@ function Main() {
                     value={start}
                     onChange={setStart}
                   />
+                  <Field c={c} numeric label={t("Mục tiêu phiên (phút, tùy chọn)", "Session goal (minutes, optional)")} value={sessionGoal} onChange={setSessionGoal} placeholder={t("Không đặt mục tiêu", "No goal")} />
+                  {label("Đạt mục tiêu thì timer vẫn tiếp tục. Bạn có thể kết thúc sớm và lưu phiên.", "The timer continues after the goal. You can finish early and save.")}
                   {label(
                     "Từ 98 đến 110 được tính là 12 trang.",
                     "98 to 110 counts as 12 pages.",
@@ -1608,6 +1673,7 @@ function Main() {
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
+    </SoundProvider>
   );
 }
 export default function App() {

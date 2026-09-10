@@ -2,10 +2,12 @@
   "name": "readsession",
   "description": "Personal offline reading timer and journal for Android",
   "license": "0BSD",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "index.ts",
   "dependencies": {
     "expo": "~57.0.21",
+    "expo-audio": "~57.0.4",
+    "expo-camera": "~57.0.4",
     "expo-dev-client": "~57.0.18",
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.6",
@@ -26,7 +28,7 @@
     "start": "expo start --dev-client",
     "android": "expo run:android --device",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/model.test.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "export:android": "expo export --platform android"
   },
   "private": true

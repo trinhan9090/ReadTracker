@@ -23,8 +23,14 @@
 !/app/src/storage.ts
 !/app/src/ui.tsx
 !/app/src/ReadSession.tsx
+!/app/src/isbn.ts
+!/app/src/IsbnTools.tsx
+!/app/src/sound.tsx
+!/app/assets/
+!/app/assets/tap.wav
 !/app/tests/
 !/app/tests/model.test.ts
+!/app/tests/features.test.ts
 
 # Local documentation, personal configuration, generated files and data.
 /LOCAL_DEVELOPMENT.md
@@ -77,3 +83,5 @@
 !/releases/
 !/releases/ReadSession-0.1.0-draft.apk
 !/releases/ReadSession-0.1.0-draft.apk.sha256
+!/releases/ReadSession-0.2.0-draft.apk
+!/releases/ReadSession-0.2.0-draft.apk.sha256

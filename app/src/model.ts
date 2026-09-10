@@ -7,6 +7,7 @@ export type Book = {
   completed: boolean;
   reflection: string;
   cover?: string;
+  isbn?: string;
   deletedAt?: number;
   createdAt: number;
 };
@@ -16,6 +17,7 @@ export type Session = {
   start: number;
   end: number;
   seconds: number;
+  goalMinutes?: number;
   date: string;
   note: string;
   createdAt: number;
@@ -33,13 +35,14 @@ export type Draft = {
   note: string;
   editingSeconds?: string;
   finishing?: boolean;
+  goalMinutes?: number;
 };
 export type State = {
   version: 1;
   books: Book[];
   sessions: Session[];
   draft: Draft | null;
-  settings: { language: "vi" | "en"; theme: "light" | "dark" | "system" };
+  settings: { language: "vi" | "en"; theme: "light" | "dark" | "system"; soundEnabled?: boolean; dailyGoalMinutes?: number };
   lastBookId?: string;
 };
 export const emptyState = (): State => ({
@@ -143,6 +146,24 @@ export function weeklyStreak(sessions: Session[], today = localDate()) {
   }
   return count;
 }
+export function validGoal(minutes: unknown): minutes is number {
+  return typeof minutes === "number" && Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440;
+}
+export function dailyGoal(settings: State["settings"]) {
+  return settings.dailyGoalMinutes ?? 5;
+}
+export function daySeconds(sessions: Session[], date: string) {
+  return sessions.filter((s) => !s.deletedAt && s.date === date).reduce((sum, s) => sum + s.seconds, 0);
+}
+export function dailyStreak(sessions: Session[], settings: State["settings"], today = localDate()) {
+  const totals = new Map<string, number>();
+  for (const s of sessions) if (!s.deletedAt) totals.set(s.date, (totals.get(s.date) ?? 0) + s.seconds);
+  const reached = (date: string) => (totals.get(date) ?? 0) >= dailyGoal(settings) * 60;
+  const previous = (date: string) => { const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() - 1); return localDate(d); };
+  let date = reached(today) ? today : previous(today), count = 0;
+  while (reached(date)) { count++; date = previous(date); }
+  return count;
+}
 export function validateBackup(value: unknown): value is State {
   if (!value || typeof value !== "object") return false;
   const s = value as State;
@@ -156,6 +177,8 @@ export function validateBackup(value: unknown): value is State {
     s.draft !== null
   )
     return false;
+  if (s.settings.soundEnabled !== undefined && typeof s.settings.soundEnabled !== "boolean") return false;
+  if (s.settings.dailyGoalMinutes !== undefined && !validGoal(s.settings.dailyGoalMinutes)) return false;
   const ids = new Set<string>();
   for (const b of s.books) {
     if (
@@ -170,6 +193,7 @@ export function validateBackup(value: unknown): value is State {
       typeof b.completed !== "boolean" ||
       typeof b.reflection !== "string" ||
       !Number.isFinite(b.createdAt) ||
+      (b.isbn !== undefined && (typeof b.isbn !== "string" || !/^(?:\d{13}|\d{9}[\dX])$/.test(b.isbn))) ||
       (b.cover !== undefined &&
         (typeof b.cover !== "string" ||
           !/^data:image\/(jpeg|png|webp);base64,/.test(b.cover))) ||
@@ -190,6 +214,7 @@ export function validateBackup(value: unknown): value is State {
       !Number.isFinite(x.seconds) ||
       x.seconds < 0 ||
       !Number.isInteger(x.seconds) ||
+      (x.goalMinutes !== undefined && !validGoal(x.goalMinutes)) ||
       !validDate(x.date) ||
       typeof x.note !== "string" ||
       !Number.isFinite(x.createdAt) ||

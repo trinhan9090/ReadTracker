@@ -1,13 +1,13 @@
 import React from "react";
 import {
   Image,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import type { Book } from "./model";
+import { Pressable } from "./sound";
 export const light = {
   bg: "#F4F6F1",
   card: "#FFFFFF",
