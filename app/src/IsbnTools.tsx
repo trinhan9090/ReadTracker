@@ -3,6 +3,7 @@ import { AppState, Linking, Text, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Button, Field, type Palette } from "./ui";
 import { lookupIsbn, normalizeIsbn, type IsbnBook } from "./isbn";
+import { backend } from "./backend";
 
 export function IsbnTools({ value, onChange, onFound, c, t }: {
   value: string; onChange: (code: string) => void; onFound: (book: IsbnBook) => void;
@@ -26,9 +27,16 @@ export function IsbnTools({ value, onChange, onFound, c, t }: {
     const controller = new AbortController();
     request.current = controller;
     setBusy(true); setStatus(t("Đang tra cứu…", "Looking up…"));
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), 25000);
     try {
-      const book = await lookupIsbn(isbn, controller.signal);
+      let book: IsbnBook | null = null;
+      if (backend) {
+        try {
+          const { data } = await backend.from("rs_books").select("title,author,total").eq("isbn", isbn).limit(1).abortSignal(controller.signal);
+          if (data?.[0]) book = { ...data[0], total: String(data[0].total) };
+        } catch { /* Other catalogs can still work when the demo server is unavailable. */ }
+      }
+      if (!book) book = await lookupIsbn(isbn, controller.signal);
       if (request.current !== controller) return;
       if (book) onFound(book);
       setStatus(book ? t("Đã điền các ô trống. Kiểm tra lại ấn bản và số trang trước khi lưu.", "Empty fields filled. Verify your edition and page count before saving.") : t("Không tìm thấy. ISBN đã giữ lại; bạn có thể nhập thông tin sách bằng tay.", "No match. ISBN kept; enter the book details manually."));
@@ -47,7 +55,7 @@ export function IsbnTools({ value, onChange, onFound, c, t }: {
     <Field c={c} label="ISBN" value={value} onChange={(code) => {
       request.current?.abort(); request.current = null; setBusy(false); setStatus(""); onChange(code);
     }} placeholder="978…" />
-    <Text style={{ color: c.muted }}>{t("Quét barcode ISBN trên sách hoặc nhập tay. Tra cứu gửi ISBN đến Open Library qua Internet; không gửi ảnh hay ghi chú.", "Scan a book ISBN barcode or enter it manually. Lookup sends ISBN to Open Library online, without photos or notes.")}</Text>
+    <Text style={{ color: c.muted }}>{t("Tra cứu kho sách public của nhóm, Open Library và Google Books. Chỉ gửi ISBN, không gửi ảnh hay ghi chú. Sách tiếng Việt chưa có dữ liệu vẫn cần nhập tay; chọn public để nhóm tra cứu được lần sau.", "Search the group's public books, Open Library and Google Books. Only ISBN is sent, not photos or notes. Missing editions can be entered manually and shared for the group.")}</Text>
     {scanning ? <>
       <CameraView style={{ height: 230, width: "100%" }} facing="back" barcodeScannerSettings={{ barcodeTypes: ["ean13"] }}
         onMountError={() => { setScanning(false); setStatus(t("Không mở được camera. Thử lại hoặc nhập ISBN.", "Camera unavailable. Retry or enter ISBN.")); }}

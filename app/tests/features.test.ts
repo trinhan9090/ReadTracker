@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dailyGoal, dailyStreak, daySeconds, emptyState, liveSessions, saveSession, validGoal, validateBackup, type Session } from "../src/model.ts";
 import { normalizeIsbn, lookupIsbn } from "../src/isbn.ts";
+import { suggestedBooks, privateImport } from "../src/model.ts";
 const session = (date: string, seconds: number, extra = {}): Session => ({ id: `${date}-${seconds}`, bookId: "b", start: 0, end: 1, seconds, date, note: "", createdAt: 1, ...extra });
 const settings = emptyState().settings;
 test("blank daily goal requires exactly five accumulated minutes; an unfinished today keeps yesterday's streak", () => {
@@ -12,6 +13,31 @@ test("blank daily goal requires exactly five accumulated minutes; an unfinished 
   sessions.push(session("2026-09-01", 1));
   assert.equal(daySeconds(sessions, "2026-09-01"), 300);
   assert.equal(dailyStreak(sessions, settings, "2026-09-01"), 3);
+});
+test("timer suggests only unread/in-progress books, while private import resets sharing", () => {
+  const state = emptyState();
+  const base = { title: "Book", author: "Author", total: 100, position: 0, completed: false, reflection: "", createdAt: 1 };
+  state.books = [{ ...base, id: "unread" }, { ...base, id: "reading", position: 20 }, { ...base, id: "finished", completed: true }, { ...base, id: "at-end", position: 100 }, { ...base, id: "trash", deletedAt: 1 }];
+  assert.deepEqual(suggestedBooks(state.books).map(b => b.id), ["unread", "reading"]);
+  state.books[0].visibility = "public";
+  state.books[0].reflectionVisibility = "public";
+  state.sessions = [session("2026-08-30", 300, { visibility: "public" })];
+  const imported = privateImport(state);
+  assert.equal(imported.books[0].visibility, "private");
+  assert.equal(imported.books[0].reflectionVisibility, "private");
+  assert.equal(imported.sessions[0].visibility, "private");
+  assert.equal(state.books[0].visibility, "public");
+});
+test("Vietnamese metadata falls back to Google Books and rejects mismatched editions", async () => {
+  const old = globalThis.fetch;
+  try {
+    globalThis.fetch = (async (url) => String(url).includes("openlibrary") ? new Response("unavailable", { status: 503 }) : new Response(JSON.stringify({ items: [{ volumeInfo: { title: "Tên sách tiếng Việt", authors: ["Tác giả Việt"], pageCount: 120, industryIdentifiers: [{ identifier: "9780140328721" }] } }] }))) as typeof fetch;
+    const result = await lookupIsbn("9780140328721", new AbortController().signal);
+    assert.equal(result?.title, "Tên sách tiếng Việt");
+    assert.equal(result?.total, "120");
+    globalThis.fetch = (async (url) => String(url).includes("openlibrary") ? new Response('{"docs":[]}') : new Response(JSON.stringify({ items: [{ volumeInfo: { title: "Wrong edition", industryIdentifiers: [{ identifier: "9786042255035" }] } }] }))) as typeof fetch;
+    assert.equal(await lookupIsbn("9780140328721", new AbortController().signal), null);
+  } finally { globalThis.fetch = old; }
 });
 test("20 minute goal recalculates all history, adds sessions and excludes deleted sessions", () => {
   const data = [session("2026-08-30", 300), session("2026-08-31", 700), session("2026-08-31", 500), session("2026-09-01", 1199), session("2026-09-01", 1, { deletedAt: 1 })];

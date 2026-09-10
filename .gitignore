@@ -26,6 +26,12 @@
 !/app/src/isbn.ts
 !/app/src/IsbnTools.tsx
 !/app/src/sound.tsx
+!/app/src/backend.ts
+!/app/src/online.ts
+!/app/src/useCloud.ts
+!/app/src/Social.tsx
+!/app/supabase/
+!/app/supabase/schema.sql
 !/app/assets/
 !/app/assets/tap.wav
 !/app/tests/
@@ -85,3 +91,6 @@
 !/releases/ReadSession-0.1.0-draft.apk.sha256
 !/releases/ReadSession-0.2.0-draft.apk
 !/releases/ReadSession-0.2.0-draft.apk.sha256
+!/releases/ReadSession-0.3.0-demo.apk
+!/releases/ReadSession-0.3.0-demo.apk.sha256
+!/app/supabase/schema.sql

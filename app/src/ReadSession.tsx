@@ -38,19 +38,24 @@ import {
   dailyGoal,
   daySeconds,
   validGoal,
+  suggestedBooks,
 } from "./model";
 import { IsbnTools } from "./IsbnTools";
 import { normalizeIsbn } from "./isbn";
-import { Pressable, SoundProvider } from "./sound";
+import { backend } from "./backend";
+import { Social } from "./Social";
+import { useCloud } from "./useCloud";
+import type { Session as LoginSession } from "@supabase/supabase-js";
+import { Pressable, SoundProvider, SoundTest } from "./sound";
 import { load, persist } from "./storage";
 import { Button, Field, Cover, light, dark, styles } from "./ui";
 
-function Main() {
+function Main({ account }: { account: LoginSession | null }) {
   const [state, setState] = useState<State>(emptyState);
   const ref = useRef(state);
   const [ready, setReady] = useState(false);
   const [fatal, setFatal] = useState("");
-  const [tab, setTab] = useState<"sessions" | "books" | "settings">("sessions");
+  const [tab, setTab] = useState<"sessions" | "books" | "settings" | "social">("sessions");
   const [now, setNow] = useState(Date.now());
   const [selected, setSelected] = useState("");
   const [modal, setModal] = useState<
@@ -66,6 +71,8 @@ function Main() {
     isbn: "",
     completed: false,
     reflection: "",
+    visibility: "private" as "private" | "public",
+    reflectionVisibility: "private" as "private" | "public",
   });
   const [sessionForm, setSessionForm] = useState({
     id: "",
@@ -75,6 +82,7 @@ function Main() {
     time: "00:00:00",
     date: localDate(),
     note: "",
+    visibility: "private" as "private" | "public",
   });
   const [sessionGoal, setSessionGoal] = useState("20");
   const [dailyInput, setDailyInput] = useState("");
@@ -95,6 +103,7 @@ function Main() {
   const message = (body: string) => Alert.alert("ReadSession", body);
   function commit(next: State) {
     try {
+      next = { ...next, cloudDirty: account ? true : next.cloudDirty };
       persist(next);
       ref.current = next;
       setState(next);
@@ -111,7 +120,7 @@ function Main() {
   }
   useEffect(() => {
     try {
-      let s = load();
+      let s = load(account?.user.id);
       if (s.draft) {
         s = {
           ...s,
@@ -167,8 +176,11 @@ function Main() {
       sub.remove();
     };
   }, []);
+  const cloud = useCloud(account?.user.id, ready, state, ref, setState);
   const books = state.books.filter((b) => !b.deletedAt);
-  const chosen = books.find((b) => b.id === selected) ?? books[0];
+  const suggestions = suggestedBooks(books);
+  const chosen = suggestions.find((b) => b.id === selected) ?? suggestions[0];
+  const startBook = books.find((b) => b.id === selected) ?? chosen;
   const draft = state.draft;
   const readingBook = books.find((b) => b.id === draft?.bookId);
   const detail = state.books.find((b) => b.id === bookId);
@@ -201,6 +213,8 @@ function Main() {
       isbn: b?.isbn ?? "",
       completed: b?.completed ?? false,
       reflection: b?.reflection ?? "",
+      visibility: b?.visibility ?? "private",
+      reflectionVisibility: b?.reflectionVisibility ?? "private",
     });
     setModal("book");
   };
@@ -244,6 +258,8 @@ function Main() {
       isbn,
       completed: bookForm.completed || position === total,
       reflection: bookForm.reflection,
+      visibility: bookForm.visibility,
+      reflectionVisibility: bookForm.reflectionVisibility,
       createdAt: old?.createdAt ?? Date.now(),
     };
     if (
@@ -301,6 +317,7 @@ function Main() {
     }
   }
   function begin() {
+    const chosen = startBook;
     if (!chosen || ref.current.draft) return;
     const goal = sessionGoal.trim() ? Number(sessionGoal) : undefined;
     if (goal !== undefined && !validGoal(goal)) { message(t("Mục tiêu cần là số phút nguyên từ 1 đến 1440, hoặc để trống.", "Goal must be 1–1440 whole minutes, or blank.")); return; }
@@ -412,6 +429,7 @@ function Main() {
       end,
       seconds,
       goalMinutes: manual ? old?.goalMinutes : d?.goalMinutes,
+      visibility: f?.visibility ?? d?.visibility ?? "private",
       date,
       note: f?.note ?? d!.note,
       createdAt: old?.createdAt ?? Date.now(),
@@ -431,6 +449,7 @@ function Main() {
     else action();
   }
   function manual(s?: Session) {
+    const chosen = books.find((b) => b.id === selected) ?? books[0];
     if (draft) {
       message(
         t(
@@ -452,6 +471,7 @@ function Main() {
       time: clock(s?.seconds ?? 0),
       date: s?.date ?? localDate(),
       note: s?.note ?? "",
+      visibility: s?.visibility ?? "private",
     });
     setModal("manual");
   }
@@ -535,7 +555,7 @@ function Main() {
           "Replace all current data? Export a backup first.",
         ),
         () => {
-          if (commit(data)) {
+          if (commit({ ...data, cloudRevision: ref.current.cloudRevision })) {
             setSelected(data.lastBookId ?? "");
             message(t("Đã khôi phục.", "Backup restored."));
           }
@@ -706,11 +726,12 @@ function Main() {
               ? t("Một chút thời gian cho sách", "A little time for a book")
               : tab === "books"
                 ? t("Tủ sách của bạn", "Your bookshelf")
-                : t("Theo cách của bạn", "Make it yours")}
+                : tab === "social" ? t("Bạn và những cuốn sách", "You and your books") : t("Theo cách của bạn", "Make it yours")}
           </Text>
         </View>
-        <Text style={{ color: c.green, padding: 8 }}>0.2</Text>
+        <Text style={{ color: c.green, padding: 8 }}>0.3</Text>
       </View>
+      {account && state.cloudDirty && <Text style={{ color: c.danger, paddingHorizontal: 20, paddingBottom: 8 }}>{draft ? t("Kết thúc phiên để đồng bộ thay đổi.", "Finish the session to sync changes.") : t("Có thay đổi chưa đồng bộ. Xem trạng thái ở Cá nhân.", "Unsynced changes. Check status in Profile.")}</Text>}
       <ScrollView
         contentContainerStyle={{
           padding: 20,
@@ -768,8 +789,8 @@ function Main() {
                       }
                     })
                   : label(
-                      "Thêm cuốn sách đầu tiên để bắt đầu.",
-                      "Add your first book to get started.",
+                      books.length ? "Bạn đã đọc xong các sách. Thêm sách mới hoặc vào tủ sách để đọc lại." : "Thêm cuốn sách đầu tiên để bắt đầu.",
+                      books.length ? "All books are finished. Add a book or open your shelf to reread." : "Add your first book to get started.",
                     )}
                 {draft ? (
                   <>
@@ -794,10 +815,11 @@ function Main() {
                     label={
                       chosen
                         ? t("Bắt đầu đọc", "Start reading")
-                        : t("Thêm sách đầu tiên", "Add your first book")
+                        : t("Thêm sách", "Add a book")
                     }
                     onPress={() => {
                       if (chosen) {
+                        setSelected(chosen.id);
                         setStart(String(chosen.position));
                         setModal("start");
                       } else openBook();
@@ -805,13 +827,13 @@ function Main() {
                     c={c}
                   />
                 )}
-                {!draft && books.length > 1 && (
+                {!draft && suggestions.length > 1 && (
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ gap: 8, paddingTop: 8 }}
                   >
-                    {books.map((b) => (
+                    {suggestions.map((b) => (
                       <Pressable
                         key={b.id}
                         onPress={() => setSelected(b.id)}
@@ -1029,6 +1051,7 @@ function Main() {
               )}
           </>
         )}
+        {tab === "social" && <Social account={account} state={state} commit={commit} c={c} t={t} syncStatus={cloud.status} sync={() => { void cloud.sync(); }} pull={() => { void cloud.pull(); }} />}
         {tab === "settings" && (
           <>
             {heading("Mục tiêu đọc", "Reading goals")}
@@ -1044,6 +1067,7 @@ function Main() {
             {heading("Âm thanh", "Sound")}
             {card(<>
               <Button c={c} secondary label={(state.settings.soundEnabled ? "✓ " : "") + t("Âm thanh khi bấm nút", "Button sounds")} onPress={() => commit({ ...ref.current, settings: { ...ref.current.settings, soundEnabled: !ref.current.settings.soundEnabled } })} />
+              <SoundTest color={c.green} language={state.settings.language} />
               {label("Âm thanh ngắn, nhẹ. Mặc định tắt; khi bật, dùng âm lượng đa phương tiện của điện thoại.", "A short, gentle tap. Off by default; uses the phone's media volume when enabled.")}
             </>)}
             {heading("Hiển thị", "Appearance")}
@@ -1127,8 +1151,8 @@ function Main() {
               </>,
             )}
             {label(
-              "ReadSession 0.2 · Bản draft Android\nKhông tài khoản · Không quảng cáo · Dùng ngoại tuyến",
-              "ReadSession 0.2 · Android draft\nNo account · No ads · Works offline",
+              "ReadSession 0.3 · Bản draft Android\nKhông tài khoản · Không quảng cáo · Dùng ngoại tuyến",
+              "ReadSession 0.3 · Android draft\nNo account · No ads · Works offline",
             )}
           </>
         )}
@@ -1140,6 +1164,7 @@ function Main() {
           [
             ["sessions", "◷", "Phiên", "Sessions"],
             ["books", "▤", "Sách", "Books"],
+            ["social", "◎", "Cá nhân", "Profile"],
             ["settings", "☷", "Cài đặt", "Settings"],
           ] as const
         ).map(([key, icon, vi, en]) => (
@@ -1297,6 +1322,9 @@ function Main() {
                       }
                     />
                   )}
+                  <Button c={c} secondary label={t("Sách", "Book") + ": " + bookForm.visibility} onPress={() => setBookForm((f) => ({ ...f, visibility: f.visibility === "public" ? "private" : "public" }))} />
+                  <Button c={c} secondary label={t("Cảm nghĩ", "Reflection") + ": " + bookForm.reflectionVisibility} onPress={() => setBookForm((f) => ({ ...f, reflectionVisibility: f.reflectionVisibility === "public" ? "private" : "public" }))} />
+                  {label("Public: thành viên đã đăng nhập có thể xem sau khi đồng bộ. Sách private sẽ ẩn cả ghi chú. Không đăng nhập thì chỉ lưu trên máy.", "Public: signed-in members can view after sync. Private books hide all notes. Guest data stays on this device.")}
                   <Button
                     c={c}
                     label={t("Lưu sách", "Save book")}
@@ -1304,9 +1332,9 @@ function Main() {
                   />
                 </>
               )}
-              {modal === "start" && chosen && (
+              {modal === "start" && startBook && (
                 <>
-                  {bookRow(chosen, () => {})}
+                  {bookRow(startBook, () => {})}
                   <Field
                     c={c}
                     numeric
@@ -1362,6 +1390,8 @@ function Main() {
                       "An idea, a favorite line, something new…",
                     )}
                   />
+                  <Button c={c} secondary label={t("Ghi chú", "Note") + ": " + (draft.visibility ?? "private")} onPress={() => patchDraft({ visibility: draft.visibility === "public" ? "private" : "public" })} />
+                  {label("Ghi chú public chỉ hiển thị nếu sách cũng public và đã đồng bộ.", "Public notes appear only when the book is public and synced.")}
                   <Button
                     c={c}
                     label={t("Lưu phiên đọc", "Save session")}
@@ -1450,6 +1480,8 @@ function Main() {
                     value={sessionForm.note}
                     onChange={(note) => setSessionForm((f) => ({ ...f, note }))}
                   />
+                  <Button c={c} secondary label={t("Ghi chú", "Note") + ": " + sessionForm.visibility} onPress={() => setSessionForm((f) => ({ ...f, visibility: f.visibility === "public" ? "private" : "public" }))} />
+                  {label("Ghi chú public chỉ hiển thị nếu sách cũng public và đã đồng bộ.", "Public notes appear only when the book is public and synced.")}
                   <Button
                     c={c}
                     label={t("Lưu phiên", "Save session")}
@@ -1677,9 +1709,20 @@ function Main() {
   );
 }
 export default function App() {
+  const [account, setAccount] = useState<LoginSession | null>(null);
+  const [authReady, setAuthReady] = useState(!backend);
+  useEffect(() => {
+    if (!backend) return;
+    let active = true;
+    void backend.auth.getSession().then(({ data }) => { if (active) { setAccount(data.session); setAuthReady(true); } }).catch(() => { if (active) setAuthReady(true); });
+    const { data: { subscription } } = backend.auth.onAuthStateChange((_event, session) => { if (active) { setAccount(session); setAuthReady(true); } });
+    backend.auth.startAutoRefresh();
+    const sub = AppState.addEventListener("change", (status) => { if (status === "active") backend!.auth.startAutoRefresh(); else backend!.auth.stopAutoRefresh(); });
+    return () => { active = false; subscription.unsubscribe(); sub.remove(); backend!.auth.stopAutoRefresh(); };
+  }, []);
   return (
     <SafeAreaProvider>
-      <Main />
+      {authReady ? <Main key={account?.user.id ?? "guest"} account={account} /> : <Text style={{ padding: 40 }}>ReadSession…</Text>}
     </SafeAreaProvider>
   );
 }

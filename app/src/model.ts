@@ -8,10 +8,13 @@ export type Book = {
   reflection: string;
   cover?: string;
   isbn?: string;
+  visibility?: "private" | "public";
+  reflectionVisibility?: "private" | "public";
   deletedAt?: number;
   createdAt: number;
 };
 export type Session = {
+  visibility?: "private" | "public";
   id: string;
   bookId: string;
   start: number;
@@ -24,6 +27,7 @@ export type Session = {
   deletedAt?: number;
 };
 export type Draft = {
+  visibility?: "private" | "public";
   id: string;
   bookId: string;
   start: number;
@@ -38,6 +42,8 @@ export type Draft = {
   goalMinutes?: number;
 };
 export type State = {
+  cloudRevision?: number;
+  cloudDirty?: boolean;
   version: 1;
   books: Book[];
   sessions: Session[];
@@ -123,6 +129,14 @@ export function liveSessions(state: State) {
   const ids = new Set(state.books.filter((b) => !b.deletedAt).map((b) => b.id));
   return state.sessions.filter((s) => !s.deletedAt && ids.has(s.bookId));
 }
+export function suggestedBooks(books: Book[]) {
+  return books.filter((b) => !b.deletedAt && !b.completed && b.position < b.total);
+}
+export function privateImport(state: State): State {
+  return { ...state, draft: null, cloudRevision: 0, cloudDirty: true,
+    books: state.books.map((b) => ({ ...b, visibility: "private", reflectionVisibility: "private" })),
+    sessions: state.sessions.map((s) => ({ ...s, visibility: "private" })) };
+}
 export function weekStart(date: string) {
   const d = new Date(date + "T12:00:00");
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -193,6 +207,8 @@ export function validateBackup(value: unknown): value is State {
       typeof b.completed !== "boolean" ||
       typeof b.reflection !== "string" ||
       !Number.isFinite(b.createdAt) ||
+      (b.visibility !== undefined && !["private", "public"].includes(b.visibility)) ||
+      (b.reflectionVisibility !== undefined && !["private", "public"].includes(b.reflectionVisibility)) ||
       (b.isbn !== undefined && (typeof b.isbn !== "string" || !/^(?:\d{13}|\d{9}[\dX])$/.test(b.isbn))) ||
       (b.cover !== undefined &&
         (typeof b.cover !== "string" ||
@@ -218,6 +234,7 @@ export function validateBackup(value: unknown): value is State {
       !validDate(x.date) ||
       typeof x.note !== "string" ||
       !Number.isFinite(x.createdAt) ||
+      (x.visibility !== undefined && !["private", "public"].includes(x.visibility)) ||
       (x.deletedAt !== undefined && !Number.isFinite(x.deletedAt))
     )
       return false;

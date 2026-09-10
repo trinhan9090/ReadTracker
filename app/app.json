@@ -2,12 +2,12 @@
   "expo": {
     "name": "ReadSession",
     "slug": "readsession",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.readsession.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
@@ -38,7 +38,8 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "platforms": [
       "android"

@@ -15,15 +15,24 @@ export type IsbnBook = { title: string; author: string; total: string };
 export async function lookupIsbn(code: string, signal: AbortSignal): Promise<IsbnBook | null> {
   const isbn = normalizeIsbn(code);
   if (!isbn) throw new Error("Invalid ISBN");
-  const response = await fetch(`https://openlibrary.org/search.json?isbn=${isbn}&fields=title,author_name,number_of_pages_median&limit=1`, { signal });
-  if (!response.ok) throw new Error("Book lookup unavailable");
-  const data = await response.json();
-  const book = data?.docs?.[0];
-  if (!book || typeof book.title !== "string") return null;
-  const pages = book.number_of_pages_median;
-  return {
-    title: book.title.slice(0, 1000),
-    author: Array.isArray(book.author_name) ? book.author_name.filter((a: unknown) => typeof a === "string").join(", ").slice(0, 1000) : "",
-    total: Number.isInteger(pages) && pages > 0 && pages <= 999999 ? String(pages) : "",
-  };
+  let available = false;
+  const urls = [
+    `https://openlibrary.org/search.json?isbn=${isbn}&fields=title,author_name,number_of_pages_median&limit=1`,
+    `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=5`,
+  ];
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      if (signal.aborted) throw new Error("Aborted");
+      const response = await fetch(urls[i], { signal });
+      if (!response.ok) continue;
+      const data = await response.json(); available = true;
+      const book = i === 0 ? data?.docs?.[0] : data?.items?.find((x: any) => x.volumeInfo?.industryIdentifiers?.some((v: any) => normalizeIsbn(v.identifier ?? "") === isbn))?.volumeInfo;
+      if (!book || typeof book.title !== "string") continue;
+      const pages = i === 0 ? book.number_of_pages_median : book.pageCount;
+      const authors = i === 0 ? book.author_name : book.authors;
+      return { title: book.title.slice(0, 1000), author: Array.isArray(authors) ? authors.filter((a: unknown) => typeof a === "string").join(", ").slice(0, 1000) : "", total: Number.isInteger(pages) && pages > 0 && pages <= 999999 ? String(pages) : "" };
+    } catch { if (signal.aborted) throw new Error("Aborted"); }
+  }
+  if (!available) throw new Error("Book lookup unavailable");
+  return null;
 }

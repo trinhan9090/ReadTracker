@@ -76,6 +76,7 @@ export function Field({
   numeric = false,
   multiline = false,
   placeholder,
+  secret = false,
 }: {
   label: string;
   value: string;
@@ -84,6 +85,7 @@ export function Field({
   numeric?: boolean;
   multiline?: boolean;
   placeholder?: string;
+  secret?: boolean;
 }) {
   return (
     <View style={{ gap: 7, marginBottom: 12 }}>
@@ -91,6 +93,8 @@ export function Field({
         {label}
       </Text>
       <TextInput
+        secureTextEntry={secret}
+        autoCapitalize="none"
         accessibilityLabel={label}
         value={value}
         onChangeText={onChange}
