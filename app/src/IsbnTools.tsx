@@ -3,6 +3,8 @@ import { AppState, Linking, Text, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Button, Field, type Palette } from "./ui";
 import { lookupIsbn, normalizeIsbn, type IsbnBook } from "./isbn";
+import { lookupVietnameseIsbn } from "./catalog";
+import { BookSearch } from "./BookSearch";
 import { backend } from "./backend";
 
 export function IsbnTools({ value, onChange, onFound, c, t }: {
@@ -27,7 +29,7 @@ export function IsbnTools({ value, onChange, onFound, c, t }: {
     const controller = new AbortController();
     request.current = controller;
     setBusy(true); setStatus(t("Đang tra cứu…", "Looking up…"));
-    const timeout = setTimeout(() => controller.abort(), 25000);
+    const timeout = setTimeout(() => controller.abort(), 40000);
     try {
       let book: IsbnBook | null = null;
       if (backend) {
@@ -36,7 +38,11 @@ export function IsbnTools({ value, onChange, onFound, c, t }: {
           if (data?.[0]) book = { ...data[0], total: String(data[0].total) };
         } catch { /* Other catalogs can still work when the demo server is unavailable. */ }
       }
-      if (!book) book = await lookupIsbn(isbn, controller.signal);
+      if (!book) {
+        const [international, vietnamese] = await Promise.allSettled([lookupIsbn(isbn, controller.signal), lookupVietnameseIsbn(isbn, controller.signal)]);
+        book = (vietnamese.status === "fulfilled" ? vietnamese.value : null) ?? (international.status === "fulfilled" ? international.value : null);
+        if (!book && international.status === "rejected") throw new Error("Lookup unavailable");
+      }
       if (request.current !== controller) return;
       if (book) onFound(book);
       setStatus(book ? t("Đã điền các ô trống. Kiểm tra lại ấn bản và số trang trước khi lưu.", "Empty fields filled. Verify your edition and page count before saving.") : t("Không tìm thấy. ISBN đã giữ lại; bạn có thể nhập thông tin sách bằng tay.", "No match. ISBN kept; enter the book details manually."));
@@ -52,10 +58,10 @@ export function IsbnTools({ value, onChange, onFound, c, t }: {
     } catch { setStatus(t("Không mở được camera.", "Could not open camera.")); }
   }
   return <View style={{ gap: 10 }}>
-    <Field c={c} label="ISBN" value={value} onChange={(code) => {
+    <Field c={c} label={t("ISBN (không bắt buộc)", "ISBN (optional)")} value={value} onChange={(code) => {
       request.current?.abort(); request.current = null; setBusy(false); setStatus(""); onChange(code);
     }} placeholder="978…" />
-    <Text style={{ color: c.muted }}>{t("Tra cứu kho sách public của nhóm, Open Library và Google Books. Chỉ gửi ISBN, không gửi ảnh hay ghi chú. Sách tiếng Việt chưa có dữ liệu vẫn cần nhập tay; chọn public để nhóm tra cứu được lần sau.", "Search the group's public books, Open Library and Google Books. Only ISBN is sent, not photos or notes. Missing editions can be entered manually and shared for the group.")}</Text>
+    <Text style={{ color: c.muted }}>{t("Tra cứu ISBN trong kho public của nhóm, Nhã Nam, NXB Trẻ, Open Library và Google Books. Chỉ điền khi khớp mã. Nếu thiếu dữ liệu, dùng tìm theo tên bên dưới hoặc nhập tay.", "Search public group books, Nhã Nam, NXB Trẻ, Open Library and Google Books for an exact ISBN. Missing editions can be searched by title below or entered manually.")}</Text>
     {scanning ? <>
       <CameraView style={{ height: 230, width: "100%" }} facing="back" barcodeScannerSettings={{ barcodeTypes: ["ean13"] }}
         onMountError={() => { setScanning(false); setStatus(t("Không mở được camera. Thử lại hoặc nhập ISBN.", "Camera unavailable. Retry or enter ISBN.")); }}
@@ -68,6 +74,8 @@ export function IsbnTools({ value, onChange, onFound, c, t }: {
     </> : <Button c={c} secondary disabled={busy} label={t("Quét barcode / ISBN", "Scan barcode / ISBN")} onPress={scan} />}
     {permission && !permission.granted && !permission.canAskAgain && <Button c={c} secondary label={t("Mở quyền ứng dụng", "Open app permissions")} onPress={() => { void Linking.openSettings(); }} />}
     <Button c={c} secondary disabled={busy || scanning} label={t("Tra cứu ISBN", "Look up ISBN")} onPress={() => { void lookup(value); }} />
+    <Text style={{ color: c.muted }}>{t("Bạn luôn có thể để trống ISBN và tự nhập tên, tác giả, số trang bên dưới để lưu sách.", "You can always leave ISBN blank and enter a title, author and page count below to save a book.")}</Text>
+    <BookSearch isbn={value} c={c} t={t} onFound={onFound} />
     {!!status && <Text accessibilityLiveRegion="polite" style={{ color: c.muted }}>{status}</Text>}
   </View>;
 }

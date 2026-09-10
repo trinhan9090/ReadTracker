@@ -94,3 +94,15 @@
 !/releases/ReadSession-0.3.0-demo.apk
 !/releases/ReadSession-0.3.0-demo.apk.sha256
 !/app/supabase/schema.sql
+
+# Reviewed 0.4 source, documentation, migration and standalone APK.
+!/PROJECT_STRUCTURE.md
+!/app/src/BookSearch.tsx
+!/app/src/catalog.ts
+!/app/src/PublicProfile.tsx
+!/app/src/SyncPanel.tsx
+!/app/src/UserGuide.tsx
+!/app/tests/catalog.test.ts
+!/app/supabase/upgrade-0.4.sql
+!/releases/ReadSession-0.4.0-demo.apk
+!/releases/ReadSession-0.4.0-demo.apk.sha256

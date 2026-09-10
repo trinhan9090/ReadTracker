@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppState,
+  BackHandler,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -44,10 +45,12 @@ import { IsbnTools } from "./IsbnTools";
 import { normalizeIsbn } from "./isbn";
 import { backend } from "./backend";
 import { Social } from "./Social";
+import { SyncPanel } from "./SyncPanel";
+import { UserGuide } from "./UserGuide";
 import { useCloud } from "./useCloud";
 import type { Session as LoginSession } from "@supabase/supabase-js";
-import { Pressable, SoundProvider, SoundTest } from "./sound";
-import { load, persist } from "./storage";
+import { Pressable, SoundProvider } from "./sound";
+import { load, persist, hasChosenStorage, chooseStorage } from "./storage";
 import { Button, Field, Cover, light, dark, styles } from "./ui";
 
 function Main({ account }: { account: LoginSession | null }) {
@@ -56,6 +59,19 @@ function Main({ account }: { account: LoginSession | null }) {
   const [ready, setReady] = useState(false);
   const [fatal, setFatal] = useState("");
   const [tab, setTab] = useState<"sessions" | "books" | "settings" | "social">("sessions");
+  const [settingsPage, setSettingsPage] = useState<"home" | "sync" | "guide">("home");
+  const [welcome, setWelcome] = useState(() => !account && !hasChosenStorage());
+  const scroll = useRef<ScrollView>(null);
+  const scrollTop = () => scroll.current?.scrollTo({ y: 0, animated: false });
+  useEffect(() => { scrollTop(); }, [tab, settingsPage]);
+  useEffect(() => { if (account) chooseStorage(); }, [account?.user.id]);
+  useEffect(() => {
+    const listener = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (tab === "settings" && settingsPage !== "home") { setSettingsPage("home"); return true; }
+      return false;
+    });
+    return () => listener.remove();
+  }, [tab, settingsPage]);
   const [now, setNow] = useState(Date.now());
   const [selected, setSelected] = useState("");
   const [modal, setModal] = useState<
@@ -101,8 +117,9 @@ function Main({ account }: { account: LoginSession | null }) {
   const t = (vi: string, en: string) =>
     state.settings.language === "vi" ? vi : en;
   const message = (body: string) => Alert.alert("ReadSession", body);
-  function commit(next: State) {
+  function commit(input: State | ((current: State) => State)) {
     try {
+      let next = typeof input === "function" ? input(ref.current) : input;
       next = { ...next, cloudDirty: account ? true : next.cloudDirty };
       persist(next);
       ref.current = next;
@@ -729,10 +746,11 @@ function Main({ account }: { account: LoginSession | null }) {
                 : tab === "social" ? t("Bạn và những cuốn sách", "You and your books") : t("Theo cách của bạn", "Make it yours")}
           </Text>
         </View>
-        <Text style={{ color: c.green, padding: 8 }}>0.3</Text>
+        <Text style={{ color: c.green, padding: 8 }}>0.4</Text>
       </View>
-      {account && state.cloudDirty && <Text style={{ color: c.danger, paddingHorizontal: 20, paddingBottom: 8 }}>{draft ? t("Kết thúc phiên để đồng bộ thay đổi.", "Finish the session to sync changes.") : t("Có thay đổi chưa đồng bộ. Xem trạng thái ở Cá nhân.", "Unsynced changes. Check status in Profile.")}</Text>}
+      {!!cloud.status && <Text accessibilityLiveRegion="polite" style={{ color: c.danger, paddingHorizontal: 20, paddingBottom: 8 }}>{cloud.status}</Text>}
       <ScrollView
+        ref={scroll}
         contentContainerStyle={{
           padding: 20,
           paddingTop: 0,
@@ -849,6 +867,7 @@ function Main({ account }: { account: LoginSession | null }) {
                       </Pressable>
                     ))}
                   </ScrollView>
+
                 )}
               </>,
             )}
@@ -1051,9 +1070,13 @@ function Main({ account }: { account: LoginSession | null }) {
               )}
           </>
         )}
-        {tab === "social" && <Social account={account} state={state} commit={commit} c={c} t={t} syncStatus={cloud.status} sync={() => { void cloud.sync(); }} pull={() => { void cloud.pull(); }} />}
-        {tab === "settings" && (
+        {tab === "social" && <Social account={account} state={state} commit={commit} c={c} t={t} onNavigate={scrollTop} openBooks={() => setTab("books")} openSync={() => { setSettingsPage("sync"); setTab("settings"); }} />}
+        {tab === "settings" && settingsPage === "sync" && <SyncPanel account={account} state={state} commit={commit} c={c} t={t} error={cloud.status} sync={cloud.sync} pull={cloud.pull} back={() => setSettingsPage("home")} exportJson={() => exportData("json")} />}
+        {tab === "settings" && settingsPage === "guide" && <UserGuide c={c} t={t} back={() => setSettingsPage("home")} />}
+        {tab === "settings" && settingsPage === "home" && (
           <>
+            <Button c={c} secondary label={t("Tài khoản & đồng bộ →", "Account & sync →")} onPress={() => setSettingsPage("sync")} />
+            <Button c={c} secondary label={t("Hướng dẫn sử dụng →", "User guide →")} onPress={() => setSettingsPage("guide")} />
             {heading("Mục tiêu đọc", "Reading goals")}
             {card(<>
               <Field c={c} numeric label={t("Mục tiêu ngày (phút)", "Daily goal (minutes)")} value={dailyInput} onChange={setDailyInput} placeholder={t("Để trống: 5 phút", "Blank: 5 minutes")} />
@@ -1065,11 +1088,7 @@ function Main({ account }: { account: LoginSession | null }) {
               }} />
             </>)}
             {heading("Âm thanh", "Sound")}
-            {card(<>
-              <Button c={c} secondary label={(state.settings.soundEnabled ? "✓ " : "") + t("Âm thanh khi bấm nút", "Button sounds")} onPress={() => commit({ ...ref.current, settings: { ...ref.current.settings, soundEnabled: !ref.current.settings.soundEnabled } })} />
-              <SoundTest color={c.green} language={state.settings.language} />
-              {label("Âm thanh ngắn, nhẹ. Mặc định tắt; khi bật, dùng âm lượng đa phương tiện của điện thoại.", "A short, gentle tap. Off by default; uses the phone's media volume when enabled.")}
-            </>)}
+            {label("Âm thanh nút bấm đang tạm tắt để xử lý lỗi.", "Button sounds are temporarily disabled while the issue is fixed.")}
             {heading("Hiển thị", "Appearance")}
             {card(
               <>
@@ -1151,12 +1170,21 @@ function Main({ account }: { account: LoginSession | null }) {
               </>,
             )}
             {label(
-              "ReadSession 0.3 · Bản draft Android\nKhông tài khoản · Không quảng cáo · Dùng ngoại tuyến",
-              "ReadSession 0.3 · Android draft\nNo account · No ads · Works offline",
+              "ReadSession 0.4 · Bản demo Android\nLocal hoặc đăng nhập · Không quảng cáo",
+              "ReadSession 0.4 · Android demo\nLocal or signed in · No ads",
             )}
           </>
         )}
       </ScrollView>
+      <Modal visible={ready && welcome && !account} animationType="fade" onRequestClose={() => { chooseStorage(); setWelcome(false); }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, padding: 24, justifyContent: "center", gap: 20 }}>
+          <Text style={{ color: c.ink, fontSize: 30, fontWeight: "700" }}>ReadSession</Text>
+          <Text style={{ color: c.ink, fontSize: 22 }}>{t("Bạn muốn lưu việc đọc của mình ở đâu?", "Where would you like to save your reading?")}</Text>
+          <Text style={{ color: c.muted, lineHeight: 24 }}>{t("Dùng local để lưu trên điện thoại, không cần tài khoản. Đăng nhập để lưu thêm online và kết nối bạn bè. Bạn có thể đổi trong Cài đặt → Tài khoản & đồng bộ.", "Use local storage without an account, or sign in for online storage and friends. Change this in Settings → Account & sync.")}</Text>
+          <Button c={c} secondary label={t("Tiếp tục sử dụng local", "Continue locally")} onPress={() => { chooseStorage(); setWelcome(false); }} />
+          <Button c={c} label={t("Đăng nhập để lưu online", "Sign in for online storage")} onPress={() => { chooseStorage(); setWelcome(false); setSettingsPage("sync"); setTab("settings"); }} />
+        </SafeAreaView>
+      </Modal>
       <View
         style={[styles.tabs, { backgroundColor: c.card, borderColor: c.line }]}
       >
@@ -1324,7 +1352,7 @@ function Main({ account }: { account: LoginSession | null }) {
                   )}
                   <Button c={c} secondary label={t("Sách", "Book") + ": " + bookForm.visibility} onPress={() => setBookForm((f) => ({ ...f, visibility: f.visibility === "public" ? "private" : "public" }))} />
                   <Button c={c} secondary label={t("Cảm nghĩ", "Reflection") + ": " + bookForm.reflectionVisibility} onPress={() => setBookForm((f) => ({ ...f, reflectionVisibility: f.reflectionVisibility === "public" ? "private" : "public" }))} />
-                  {label("Public: thành viên đã đăng nhập có thể xem sau khi đồng bộ. Sách private sẽ ẩn cả ghi chú. Không đăng nhập thì chỉ lưu trên máy.", "Public: signed-in members can view after sync. Private books hide all notes. Guest data stays on this device.")}
+                  {label("Sách public chia sẻ thông tin sách và ngày, thời lượng, mốc trang của các phiên. Nội dung ghi chú chỉ hiện khi ghi chú là public. Sách private ẩn toàn bộ chi tiết. Không đăng nhập thì chỉ lưu trên máy.", "Public books share book details and session dates, durations and page milestones. Note text appears only when public. Private books hide all details. Guest data stays on this device.")}
                   <Button
                     c={c}
                     label={t("Lưu sách", "Save book")}

@@ -13,14 +13,14 @@ ReadSession là ứng dụng Android giúp bạn dành thời gian cho sách, th
 - **Thống kê:** thời gian đọc, số trang, biểu đồ theo tháng và chuỗi ngày liên tiếp đạt mục tiêu.
 - **Quản lý dữ liệu:** thùng rác, khôi phục, xuất lịch sử CSV và sao lưu đầy đủ bằng JSON.
 - **Mục tiêu ngày:** cộng tất cả phiên đã lưu trong ngày. Để trống dùng ngưỡng 5 phút; đặt 20 phút thì cần đủ 20 phút. Thay đổi mục tiêu tính lại toàn bộ chuỗi. Ngày chưa đạt vẫn giữ dữ liệu; hôm nay chưa đạt thì chuỗi tới hôm qua vẫn hiển thị.
-- **Âm thanh:** tiếng bấm nút nhẹ, bật/tắt trong Cài đặt, mặc định tắt.
+- **Âm thanh:** tạm tắt trong bản 0.4 để xử lý lỗi phát âm thanh.
 - **Giao diện:** tiếng Việt/Anh, chế độ sáng/tối hoặc theo thiết bị.
 
 Ví dụ, với sách có mốc cuối là 110, phiên **0 → 98** ghi nhận 98 trang. Phiên kế tiếp **98 → 110** ghi nhận thêm 12 trang và hoàn thành sách. Đọc lại không xóa lịch sử trước đó.
 
 ## Trạng thái
 
-Dự án đang ở bản **0.3.0 demo online**, dành cho thử nghiệm. [Tải APK chạy độc lập](releases/ReadSession-0.3.0-demo.apk?raw=true): không cần máy tính, Expo Go hoặc máy chủ phát triển.
+Dự án đang ở bản **0.3.0 demo online**, dành cho thử nghiệm. [Tải APK chạy độc lập](releases/ReadSession-0.4.0-demo.apk?raw=true): không cần máy tính, Expo Go hoặc máy chủ phát triển.
 
 Bản demo online có đăng nhập, hồ sơ, lời mời kết bạn và chia sẻ public/private. Chưa có đăng ký tự phục vụ, khôi phục mật khẩu qua email hoặc nhắc đọc.
 
@@ -30,18 +30,19 @@ Sách, ảnh bìa, phiên đọc, ghi chú và cài đặt được lưu trong S
 
 Vào **Cài đặt → Sao lưu đầy đủ JSON** để giữ bản sao dữ liệu trước khi gỡ app hoặc xóa dữ liệu ứng dụng. CSV dùng để xem lịch sử; khôi phục đầy đủ dùng bản sao JSON.
 
-## Dùng bản demo online
+## Dùng bản demo 0.4
 
-1. Mở **Cá nhân**, đăng nhập bằng tài khoản được chủ dự án cấp riêng. Mỗi người dùng một tài khoản.
-2. Tủ sách tài khoản và tủ sách khách trên máy được lưu riêng. Nếu muốn dùng sách cũ, chọn **Nhập tủ sách ngoại tuyến trên máy**; dữ liệu nhập bắt đầu ở private.
-3. Lưu tên và ảnh đại diện. Chọn tối đa ba cuốn ở **3 cuốn sách này sẽ nói về tôi**; app xác nhận trước khi chuyển sách private được chọn sang public. Ghi chú vẫn có quyền riêng.
-4. Khi thêm/sửa sách, chọn public/private cho sách và cảm nghĩ. Khi lưu/sửa phiên, chọn quyền của ghi chú. Ghi chú public chỉ hiện nếu sách cũng public.
-5. Dữ liệu tự đồng bộ sau khi lưu và kết thúc phiên. Mất mạng thì dữ liệu vẫn lưu trên máy; mục Cá nhân có trạng thái và nút **Đồng bộ ngay**. Cho tới khi đồng bộ thành công, người khác vẫn thấy bản public trước đó.
-6. Xem thành viên, gửi/chấp nhận/từ chối lời mời kết bạn và mở hồ sơ của nhau. Public trong demo nghĩa là mọi thành viên đã đăng nhập; kết bạn dùng để xác nhận quan hệ, không mở quyền đọc nội dung private.
+- Lần đầu mở app, chọn **Tiếp tục sử dụng local** hoặc **Đăng nhập để lưu online**. Có thể đổi sau ở **Cài đặt → Tài khoản & đồng bộ**.
+- Luôn có thể thêm sách bằng tay, không cần ISBN hoặc kết quả tra cứu. Tìm theo tên tại Nhã Nam/NXB Trẻ là lựa chọn hỗ trợ; hãy kiểm tra đúng ấn bản trước khi dùng.
+- **Cá nhân** hiển thị tổng giờ đọc và các nút điều hướng tới sách, chỉnh sửa hồ sơ, bạn bè và hồ sơ public. Chọn tối đa ba sách qua danh sách xổ xuống; sách chưa xong cần xác nhận.
+- Hồ sơ public có tên, tổng giờ và bìa sách. Chạm bìa mới xem phiên đọc và nội dung được chia sẻ. Public nghĩa là mọi thành viên đã đăng nhập, không chỉ bạn bè. Sách private giấu chi tiết; ghi chú private giấu nội dung. Tổng giờ gồm thời gian đọc sách private.
+- Bạn bè chỉ hiện quan hệ/lời mời đã có; tìm người khác bằng tên rồi bấm Tìm. Không có gợi ý tự động.
+- Thư viện khách và từng tài khoản tách riêng. Đăng nhập không tự nhập dữ liệu khách; có nút sao chép vào tài khoản trống, bắt đầu ở private.
+- Đồng bộ chạy yên lặng khi app đang mở, sau khi lưu xong phiên. Lỗi thì giữ bản local và hiển thị vấn đề; có nút thử lại trong Cài đặt. Không bảo đảm upload tiếp khi app đóng.
+- Nếu cloud có bản mới hơn, xuất JSON giữ thay đổi local trước khi tải bản cloud. Chưa tự gộp xung đột từ nhiều máy, chưa có lịch sử sao lưu nhiều phiên bản. Ảnh được thu nhỏ; giới hạn bản thư viện là 12 MB.
+- **Cài đặt → Hướng dẫn sử dụng** giải thích các chức năng. Âm thanh tạm tắt; nhắc đọc bằng thông báo đẩy tạm hoãn.
 
-Để tránh ghi đè giữa hai thiết bị, server kiểm tra phiên bản dữ liệu. Nếu báo cloud có bản mới hơn, xuất JSON để giữ thay đổi trên máy rồi tải bản cloud. Bản demo chưa tự ghép các thay đổi xung đột.
-
-Ảnh được thu nhỏ khi đồng bộ; giới hạn bản sao tài khoản trên server là 12 MB. Ngưỡng này phù hợp demo nhỏ. Âm thanh có nút thử trong Cài đặt; dùng âm lượng đa phương tiện. Các nguồn tra cứu chưa bao phủ mọi ấn bản tiếng Việt; có thể nhập tay và chia sẻ sách public để nhóm tra cứu lần sau.
+Xem [cấu trúc dự án và giải thích từng file](PROJECT_STRUCTURE.md), gồm luồng Local/Cloud, bảng dữ liệu và những file phải giữ riêng.
 
 ## Cài đặt từ mã nguồn
 
@@ -54,7 +55,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
-Khóa publishable được nhúng trong APK; tuyệt đối không dùng secret/service-role key. Với dự án Supabase mới, chạy `app/supabase/schema.sql` một lần bằng SQL Editor rồi tạo tài khoản demo đã xác nhận trong Authentication. Các bảng đều bật Row Level Security; phần chia sẻ được tạo trong giao dịch khi đồng bộ. Schema không chứa tài khoản hoặc mật khẩu demo.
+Khóa publishable được nhúng trong APK; tuyệt đối không dùng secret/service-role key. Với dự án Supabase mới, chạy `app/supabase/schema.sql` một lần, tiếp theo `app/supabase/upgrade-0.4.sql` bằng SQL Editor rồi tạo tài khoản demo đã xác nhận trong Authentication. Các bảng đều bật Row Level Security; phần chia sẻ được tạo trong giao dịch khi đồng bộ. Schema không chứa tài khoản hoặc mật khẩu demo. Với server đã có 0.3, chỉ chạy `upgrade-0.4.sql`, không chạy lại schema ban đầu.
 
 
 - Node.js 24 và pnpm 11.
@@ -116,15 +117,15 @@ Giữ khóa ký cho các bản cập nhật tiếp theo. Không đưa thư mục
 
 ## Cài bằng APK
 
-1. Trên điện thoại, [tải ReadSession 0.3.0 demo](releases/ReadSession-0.3.0-demo.apk?raw=true).
+1. Trên điện thoại, [tải ReadSession 0.4.0 demo](releases/ReadSession-0.4.0-demo.apk?raw=true).
 2. Mở APK và cho phép trình duyệt hoặc trình quản lý tệp cài ứng dụng khi Android yêu cầu.
 3. Cài đặt rồi mở ReadSession. Ứng dụng chạy độc lập, kể cả khi không kết nối máy tính.
 
 Yêu cầu Android 7.0 trở lên, thiết bị ARM 32-bit hoặc 64-bit. Nếu đã cài bản development và gặp lỗi xung đột chữ ký, gỡ bản cũ trước khi cài; thao tác này xóa dữ liệu của bản cũ.
 
-Nếu đang dùng APK release 0.1.0 hoặc 0.2.0, có thể cài đè 0.3.0 để giữ dữ liệu: các bản dùng cùng khóa ký. Không cần gỡ bản release cũ.
+Nếu đang dùng APK release 0.1.0, 0.2.0 hoặc 0.3.0, có thể cài đè 0.4.0 để giữ dữ liệu: các bản dùng cùng khóa ký. Không cần gỡ bản release cũ.
 
-APK dùng chữ ký release riêng và chứa sẵn mã ứng dụng. Đây là bản draft: quá trình build và chữ ký đã được kiểm tra; bản release này cần được thử nghiệm thêm trên điện thoại. Có thể đối chiếu tệp tải về với [mã SHA-256](releases/ReadSession-0.3.0-demo.apk.sha256).
+APK dùng chữ ký release riêng và chứa sẵn mã ứng dụng. Đây là bản draft: quá trình build và chữ ký đã được kiểm tra; bản release này cần được thử nghiệm thêm trên điện thoại. Có thể đối chiếu tệp tải về với [mã SHA-256](releases/ReadSession-0.4.0-demo.apk.sha256).
 
 ## Lưu ý khi thử nghiệm
 

@@ -16,10 +16,12 @@ export async function pullLibrary(owner: string) {
   if (!validateBackup(data.payload)) throw new Error("Invalid cloud backup");
   return { ...data.payload, cloudRevision: data.revision, cloudDirty: false } as State;
 }
-export async function pushLibrary(state: State) {
+export async function pushLibrary(state: State, owner: string) {
   const books = await Promise.all(state.books.map(async (b) => ({ ...b, cover: b.cover && b.cover.length > 300000 ? await thumbnail(b.cover) : b.cover })));
   const snapshot = { ...state, books, draft: null, cloudRevision: undefined, cloudDirty: undefined };
-  const { data, error } = await backend!.rpc("rs_sync", { expected_revision: state.cloudRevision ?? 0, snapshot });
+  const { data, error } = await backend!.rpc("rs_sync_for_owner", { expected_owner: owner, expected_revision: state.cloudRevision ?? 0, snapshot });
   if (error) throw error;
   return data as number;
 }
+
+export type PublicReading = { id: string; book_id: string; date: string; seconds: number; start_page: number; end_page: number; note: string };

@@ -33,3 +33,16 @@ export function guestLibrary(): State {
   const row = database?.getFirstSync<{ value: string }>("SELECT value FROM app_state WHERE id=1");
   return row ? JSON.parse(row.value) as State : emptyState();
 }
+
+// Device preference, kept outside account libraries and cloud snapshots.
+function preferences() {
+  const db = SQLite.openDatabaseSync("readsession.db");
+  db.execSync("CREATE TABLE IF NOT EXISTS device_preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
+  return db;
+}
+export function hasChosenStorage(): boolean {
+  return !!preferences().getFirstSync("SELECT value FROM device_preferences WHERE key='storage_choice'");
+}
+export function chooseStorage() {
+  preferences().runSync("INSERT OR REPLACE INTO device_preferences(key,value) VALUES ('storage_choice','chosen')");
+}
