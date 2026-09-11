@@ -1,6 +1,7 @@
 import { backend } from "./backend";
 import { validateBackup, type State } from "./model";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import type { SyncOperation, SyncConflict } from "./sync";
 export type Profile = { id: string; name: string; avatar: string | null; featured: string[] };
 export type PublicBook = { owner: string; id: string; title: string; author: string; total: number; position: number; completed: boolean; cover?: string; reflection: string; isbn?: string };
 export type PublicNote = { id: string; book_id: string; note: string; date: string };
@@ -16,12 +17,12 @@ export async function pullLibrary(owner: string) {
   if (!validateBackup(data.payload)) throw new Error("Invalid cloud backup");
   return { ...data.payload, cloudRevision: data.revision, cloudDirty: false } as State;
 }
-export async function pushLibrary(state: State, owner: string) {
-  const books = await Promise.all(state.books.map(async (b) => ({ ...b, cover: b.cover && b.cover.length > 300000 ? await thumbnail(b.cover) : b.cover })));
-  const snapshot = { ...state, books, draft: null, cloudRevision: undefined, cloudDirty: undefined };
-  const { data, error } = await backend!.rpc("rs_sync_for_owner", { expected_owner: owner, expected_revision: state.cloudRevision ?? 0, snapshot });
+export async function applyOperations(owner: string, operations: SyncOperation[]) {
+  const { data, error } = await backend!.rpc("rs_apply_ops", { expected_owner: owner, operations });
   if (error) throw error;
-  return data as number;
+  if (!data || !validateBackup(data.library) || !Array.isArray(data.accepted) || !Array.isArray(data.conflicts)) throw new Error("Invalid sync response");
+  return { remote: { ...data.library, draft: null, cloudRevision: data.revision, cloudDirty: false } as State,
+    accepted: data.accepted as string[], conflicts: data.conflicts as (SyncConflict & { reason?: string })[] };
 }
 
 export type PublicReading = { id: string; book_id: string; date: string; seconds: number; start_page: number; end_page: number; note: string };

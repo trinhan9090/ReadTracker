@@ -1,3 +1,4 @@
+import type { SyncSnapshot, SyncOperation, SyncConflict } from "./sync.ts";
 export type Book = {
   id: string;
   title: string;
@@ -42,6 +43,9 @@ export type Draft = {
   goalMinutes?: number;
 };
 export type State = {
+  syncBase?: SyncSnapshot;
+  syncOutbox?: SyncOperation[];
+  syncConflicts?: SyncConflict[];
   cloudRevision?: number;
   cloudDirty?: boolean;
   version: 1;

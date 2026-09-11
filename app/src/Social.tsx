@@ -1,5 +1,6 @@
+import { Alert } from "./dialogs";
 import React, { useEffect, useState } from "react";
-import { Alert, BackHandler, Image, Text, View } from "react-native";
+import { BackHandler, Image, Text, View } from "react-native";
 import type { Session as LoginSession } from "@supabase/supabase-js";
 import * as ImagePicker from "expo-image-picker";
 import { backend } from "./backend";

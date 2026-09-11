@@ -1,4 +1,7 @@
+import { catalogPage } from "./catalogPage.ts";
 import { normalizeIsbn, type IsbnBook } from "./isbn.ts";
+let transport = catalogPage;
+export function configureCatalogTransport(value: typeof catalogPage) { transport = value; }
 export type VietnameseSource = "nhanam" | "tre";
 export type CatalogResult = { title: string; url: string; source: VietnameseSource };
 export type CatalogBook = IsbnBook & { isbn: string | null; url: string; source: VietnameseSource };
@@ -38,9 +41,7 @@ async function page(url: string, signal: AbortSignal) {
   signal.addEventListener("abort", cancel, { once: true });
   const timer = setTimeout(cancel, 12000);
   try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) throw new Error("Catalog unavailable");
-    const html = await response.text();
+    const html = await transport(url, controller.signal);
     if (html.length > 2500000) throw new Error("Unexpected catalog response");
     return html;
   } finally { clearTimeout(timer); signal.removeEventListener("abort", cancel); }

@@ -1,6 +1,7 @@
+import { exportText, importText } from "./transfer";
+import { Alert } from "./dialogs";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   AppState,
   BackHandler,
   Image,
@@ -16,9 +17,6 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-import * as DocumentPicker from "expo-document-picker";
-import * as Sharing from "expo-sharing";
-import { File, Paths } from "expo-file-system";
 import {
   type Book,
   type Session,
@@ -53,7 +51,7 @@ import { Pressable, SoundProvider } from "./sound";
 import { load, persist, hasChosenStorage, chooseStorage } from "./storage";
 import { Button, Field, Cover, light, dark, styles } from "./ui";
 
-function Main({ account }: { account: LoginSession | null }) {
+export function Main({ account }: { account: LoginSession | null }) {
   const [state, setState] = useState<State>(emptyState);
   const ref = useRef(state);
   const [ready, setReady] = useState(false);
@@ -193,7 +191,15 @@ function Main({ account }: { account: LoginSession | null }) {
       sub.remove();
     };
   }, []);
-  const cloud = useCloud(account?.user.id, ready, state, ref, setState);
+  const cloud = useCloud(account?.user.id, ready, state, ref, setState, !!modal || tab === "social" || (tab === "settings" && settingsPage === "home"));
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const warn = (event: BeforeUnloadEvent) => {
+      if (ref.current.cloudDirty || ref.current.draft || modal === "book" || modal === "manual") { event.preventDefault(); event.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [modal]);
   const books = state.books.filter((b) => !b.deletedAt);
   const suggestions = suggestedBooks(books);
   const chosen = suggestions.find((b) => b.id === selected) ?? suggestions[0];
@@ -503,24 +509,8 @@ function Main({ account }: { account: LoginSession | null }) {
       return;
     }
     try {
-      const f = new File(Paths.cache, `ReadSession-${localDate()}.${format}`);
-      f.create({ overwrite: true });
-      f.write(
-        format === "csv"
-          ? csv(state)
-          : JSON.stringify({ ...state, draft: null }, null, 2),
-      );
-      if (await Sharing.isAvailableAsync())
-        await Sharing.shareAsync(f.uri, {
-          mimeType: format === "csv" ? "text/csv" : "application/json",
-        });
-      else
-        message(
-          t(
-            "Thiết bị không hỗ trợ chia sẻ tệp.",
-            "File sharing is unavailable.",
-          ),
-        );
+      const { syncBase, syncOutbox, syncConflicts, cloudDirty, cloudRevision, ...data } = state;
+      await exportText(`ReadSession-${localDate()}.${format}`, format === "csv" ? csv(state) : JSON.stringify({ ...data, draft: null }, null, 2), format === "csv" ? "text/csv" : "application/json");
     } catch {
       message(
         t(
@@ -541,22 +531,9 @@ function Main({ account }: { account: LoginSession | null }) {
       return;
     }
     try {
-      const r = await DocumentPicker.getDocumentAsync({
-        type: ["application/json", "text/plain"],
-        copyToCacheDirectory: true,
-      });
-      if (r.canceled) return;
-      const f = new File(r.assets[0].uri);
-      if (f.size > 30_000_000) {
-        message(
-          t(
-            "Bản sao lưu vượt giới hạn 30 MB của bản draft.",
-            "The backup exceeds this draft’s 30 MB limit.",
-          ),
-        );
-        return;
-      }
-      const data: unknown = JSON.parse(await f.text());
+      const text = await importText();
+      if (text === null) return;
+      const data: unknown = JSON.parse(text);
       if (!validateBackup(data)) {
         message(
           t(
@@ -572,7 +549,7 @@ function Main({ account }: { account: LoginSession | null }) {
           "Replace all current data? Export a backup first.",
         ),
         () => {
-          if (commit({ ...data, cloudRevision: ref.current.cloudRevision })) {
+          if (commit({ ...data, syncBase: ref.current.syncBase, syncOutbox: ref.current.syncOutbox, syncConflicts: [], cloudRevision: ref.current.cloudRevision })) {
             setSelected(data.lastBookId ?? "");
             message(t("Đã khôi phục.", "Backup restored."));
           }
@@ -717,7 +694,7 @@ function Main({ account }: { account: LoginSession | null }) {
     );
   return (
     <SoundProvider enabled={state.settings.soundEnabled ?? false}>
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, ...(Platform.OS === "web" ? { width: "100%", maxWidth: 1100, alignSelf: "center" } as const : {}) }}>
       <StatusBar style={c === dark ? "light" : "dark"} />
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
@@ -746,7 +723,7 @@ function Main({ account }: { account: LoginSession | null }) {
                 : tab === "social" ? t("Bạn và những cuốn sách", "You and your books") : t("Theo cách của bạn", "Make it yours")}
           </Text>
         </View>
-        <Text style={{ color: c.green, padding: 8 }}>0.4</Text>
+        <Text style={{ color: c.green, padding: 8 }}>0.5</Text>
       </View>
       {!!cloud.status && <Text accessibilityLiveRegion="polite" style={{ color: c.danger, paddingHorizontal: 20, paddingBottom: 8 }}>{cloud.status}</Text>}
       <ScrollView
@@ -1170,8 +1147,8 @@ function Main({ account }: { account: LoginSession | null }) {
               </>,
             )}
             {label(
-              "ReadSession 0.4 · Bản demo Android\nLocal hoặc đăng nhập · Không quảng cáo",
-              "ReadSession 0.4 · Android demo\nLocal or signed in · No ads",
+              Platform.OS === "web" ? "ReadSession 0.5 · Web demo\nĐồng bộ cloud · Không quảng cáo" : "ReadSession 0.5 · Bản demo Android\nLocal hoặc đăng nhập · Không quảng cáo",
+              Platform.OS === "web" ? "ReadSession 0.5 · Web demo\nCloud sync · No ads" : "ReadSession 0.5 · Android demo\nLocal or signed in · No ads",
             )}
           </>
         )}
@@ -1318,7 +1295,7 @@ function Main({ account }: { account: LoginSession | null }) {
                     label={t("Chọn ảnh bìa", "Choose cover")}
                     onPress={() => pickCover(false)}
                   />
-                  <Button c={c} secondary label={t("Chụp ảnh bìa", "Take cover photo")} onPress={() => pickCover(true)} />
+                  {Platform.OS !== "web" && <Button c={c} secondary label={t("Chụp ảnh bìa", "Take cover photo")} onPress={() => pickCover(true)} />}
                   {!!bookForm.cover && (
                     <Button
                       secondary

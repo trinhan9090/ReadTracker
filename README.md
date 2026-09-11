@@ -1,134 +1,91 @@
 # ReadSession
 
-ReadSession là ứng dụng Android giúp bạn dành thời gian cho sách, theo dõi tiến độ và ghi lại những điều muốn nhớ sau mỗi lần đọc.
+ReadSession giúp bạn chọn sách, tập trung đọc, lưu tiến độ và ghi lại những điều muốn nhớ. Bản **0.5.0 demo** dùng trên Android và trình duyệt PC, cùng một tài khoản Supabase.
 
-Ứng dụng hướng đến trải nghiệm đơn giản: **chọn sách → bắt đầu đọc → lưu tiến độ và ghi chú**.
+- [Mở bản web](https://trinhan9090.github.io/ReadTracker/)
+- [Tải APK Android chạy độc lập](releases/ReadSession-0.5.0-demo.apk?raw=true)
+- [Cấu trúc và ý nghĩa từng file](PROJECT_STRUCTURE.md)
+
+## Cài đặt và bắt đầu
+
+**Android:** tải APK, mở tệp và cho phép cài ứng dụng từ trình duyệt/trình quản lý tệp khi Android yêu cầu. Bản release chạy độc lập, không cần Expo Go hoặc máy chủ phát triển. Nếu đang dùng 0.4, kết thúc phiên đọc, kiểm tra đồng bộ rồi **cài đè APK 0.5**, không cần gỡ ứng dụng. Cùng mã ứng dụng và khóa ký giúp giữ dữ liệu trong app; nên xuất JSON trước khi cập nhật.
+
+Lần đầu trên Android, chọn dùng local hoặc đăng nhập. Có thể đổi trong **Cài đặt → Tài khoản & đồng bộ**. Dùng local không cần tài khoản hoặc Internet.
+
+**Web:** mở đường dẫn ở trên, đăng nhập bằng tài khoản demo đang dùng trên Android. Web bắt buộc đăng nhập và cần mạng để tải tủ sách. Chưa có đăng ký tự phục vụ; tài khoản được chủ dự án cấp riêng.
+
+**Khi dùng cả hai:** cập nhật Android lên 0.5 trước khi chỉnh sửa trên web. Dữ liệu cloud 0.4 vẫn đọc được. Sau lần ghi bằng 0.5, server từ chối các lần ghi theo giao thức 0.4 của tài khoản đó để tránh bản cũ ghi đè dữ liệu mới. APK 0.4 sẽ báo lỗi đồng bộ; cập nhật lên 0.5 để tiếp tục.
 
 ## Tính năng
 
-- **Tủ sách:** thêm và sửa thông tin sách, chọn hoặc chụp ảnh bìa, quét barcode ISBN và tra cứu thông tin sách, tìm theo tên hoặc tác giả, lọc trạng thái đọc.
-- **Phiên đọc:** bấm giờ, tạm dừng, tiếp tục và lưu mốc dừng; gợi ý vị trí của lần đọc trước; đặt mục tiêu thời gian cho mỗi phiên (tùy chọn).
-- **Ghi chú:** lưu suy nghĩ sau mỗi phiên và cảm nghĩ về cuốn sách.
-- **Lịch sử:** xem, thêm thủ công hoặc chỉnh sửa phiên đọc.
-- **Thống kê:** thời gian đọc, số trang, biểu đồ theo tháng và chuỗi ngày liên tiếp đạt mục tiêu.
-- **Quản lý dữ liệu:** thùng rác, khôi phục, xuất lịch sử CSV và sao lưu đầy đủ bằng JSON.
-- **Mục tiêu ngày:** cộng tất cả phiên đã lưu trong ngày. Để trống dùng ngưỡng 5 phút; đặt 20 phút thì cần đủ 20 phút. Thay đổi mục tiêu tính lại toàn bộ chuỗi. Ngày chưa đạt vẫn giữ dữ liệu; hôm nay chưa đạt thì chuỗi tới hôm qua vẫn hiển thị.
-- **Âm thanh:** tạm tắt trong bản 0.4 để xử lý lỗi phát âm thanh.
-- **Giao diện:** tiếng Việt/Anh, chế độ sáng/tối hoặc theo thiết bị.
+- Tủ sách với ảnh bìa, ISBN, tiến độ, trạng thái đọc và cảm nghĩ; luôn cho nhập tay khi không có ISBN/kết quả tìm kiếm.
+- Tra cứu ISBN trong kho public của nhóm, Open Library, Google Books, Nhã Nam và NXB Trẻ; tìm sách Việt theo tên và kiểm tra ấn bản trước khi dùng.
+- Timer bắt đầu/tạm dừng/tiếp tục; lưu trang kết thúc và ghi chú. Có thể thêm/sửa phiên đọc thủ công.
+- Mục tiêu thời gian từng phiên, mục tiêu ngày, lịch sử, tổng giờ đọc và chuỗi ngày. Để trống mục tiêu ngày dùng 5 phút; đổi mục tiêu tính lại toàn bộ lịch sử. Phiên ngắn hơn vẫn được lưu.
+- Hồ sơ, ảnh đại diện, tối đa ba sách giới thiệu bản thân, tìm bạn theo tên và lời mời kết bạn.
+- Sách và ghi chú public/private; hồ sơ public hiển thị tên, tổng giờ, bìa sách; bấm bìa để xem chi tiết được chia sẻ.
+- Thùng rác/khôi phục, xuất JSON đầy đủ hoặc CSV lịch sử; tiếng Việt/Anh và giao diện sáng/tối.
 
-Ví dụ, với sách có mốc cuối là 110, phiên **0 → 98** ghi nhận 98 trang. Phiên kế tiếp **98 → 110** ghi nhận thêm 12 trang và hoàn thành sách. Đọc lại không xóa lịch sử trước đó.
+Ví dụ sách có mốc cuối 110: **0 → 98** tính 98 trang, phiên sau **98 → 110** tính thêm 12 trang và hoàn thành sách. Đọc lại không xóa lịch sử.
 
-## Trạng thái
+Trên web có chọn tệp ảnh bìa/đại diện; không có chụp ảnh hoặc quét camera. Âm thanh nút bấm và thông báo đẩy nhắc đọc vẫn tạm hoãn.
 
-Dự án đang ở bản **0.3.0 demo online**, dành cho thử nghiệm. [Tải APK chạy độc lập](releases/ReadSession-0.4.0-demo.apk?raw=true): không cần máy tính, Expo Go hoặc máy chủ phát triển.
+## Dữ liệu và đồng bộ
 
-Bản demo online có đăng nhập, hồ sơ, lời mời kết bạn và chia sẻ public/private. Chưa có đăng ký tự phục vụ, khôi phục mật khẩu qua email hoặc nhắc đọc.
+Android giữ SQLite riêng cho khách và từng tài khoản. Đăng nhập không tự trộn tủ sách khách. Có thể sao chép tủ sách khách vào tài khoản trống, bắt đầu ở private. Đăng xuất không xóa dữ liệu Android.
 
-## Dữ liệu và quyền riêng tư
+Web tải tủ sách từ cloud. Trình duyệt lưu phiên đăng nhập; tab giữ tạm thay đổi chưa đồng bộ và timer trong sessionStorage để có thể khôi phục khi tải lại cùng tab. Đây không phải thư viện offline lâu dài: đóng tab, chế độ riêng tư, giới hạn dung lượng hoặc xóa dữ liệu trình duyệt có thể làm mất phần chưa gửi. Khi gặp lỗi đồng bộ, giữ tab mở hoặc xuất JSON. Form chưa bấm Lưu chưa phải dữ liệu đã lưu; trình duyệt cảnh báo trước khi rời trang.
 
-Sách, ảnh bìa, phiên đọc, ghi chú và cài đặt được lưu trong SQLite trên thiết bị. Chế độ khách giữ dữ liệu trên máy. Khi đăng nhập, tủ sách riêng của tài khoản được đồng bộ vào Supabase; dữ liệu private chỉ chủ tài khoản có quyền đọc. Hồ sơ tên/ảnh đại diện và sách, ghi chú chọn public hiển thị cho thành viên đã đăng nhập. Tra cứu mã gửi riêng mã sách tới kho sách public của demo, [Open Library](https://openlibrary.org/dev/docs/api/search) và [Google Books](https://developers.google.com/books/docs/v1/using); không gửi ảnh camera hay ghi chú đến các dịch vụ tra cứu. Kết quả tra cứu chỉ điền ô trống, cần kiểm tra lại đúng ấn bản và số trang. Khi không tìm thấy hoặc mất mạng, có thể nhập thông tin bằng tay.
+Sau khi lưu, app gửi từng sách/phiên/cài đặt đã thay đổi. Hai thiết bị sửa các mục khác nhau được gộp; cùng sửa một mục thì giữ bản trên thiết bị và hiện hai lựa chọn trong **Tài khoản & đồng bộ**. Gửi lại cùng yêu cầu không tạo phiên trùng. Xóa/khôi phục cũng tham gia cơ chế so sánh này.
 
-Vào **Cài đặt → Sao lưu đầy đủ JSON** để giữ bản sao dữ liệu trước khi gỡ app hoặc xóa dữ liệu ứng dụng. CSV dùng để xem lịch sử; khôi phục đầy đủ dùng bản sao JSON.
+Khi app đang hoạt động, dữ liệu được kiểm tra lại khoảng 10 giây và khi quay lại app. Tạm ngừng đồng bộ khi timer còn mở hoặc khi đang nhập/sửa để tránh thay nội dung đang viết; quay lại màn hình Phiên/Sách hoặc Đồng bộ sau khi lưu. Hồ sơ/bạn bè cần mạng và không nằm trong hàng chờ thư viện. Timer đang chạy **không chuyển giữa thiết bị**; chỉ phiên đã lưu được đồng bộ. Không bảo đảm đồng bộ tiếp sau khi app đóng.
 
-## Dùng bản demo 0.4
+Cloud lưu phiên bản hiện tại, không phải lịch sử sao lưu nhiều phiên bản. Xuất **JSON** trước khi gỡ app, xóa dữ liệu hoặc thay thư viện. CSV chỉ để xem lịch sử.
 
-- Lần đầu mở app, chọn **Tiếp tục sử dụng local** hoặc **Đăng nhập để lưu online**. Có thể đổi sau ở **Cài đặt → Tài khoản & đồng bộ**.
-- Luôn có thể thêm sách bằng tay, không cần ISBN hoặc kết quả tra cứu. Tìm theo tên tại Nhã Nam/NXB Trẻ là lựa chọn hỗ trợ; hãy kiểm tra đúng ấn bản trước khi dùng.
-- **Cá nhân** hiển thị tổng giờ đọc và các nút điều hướng tới sách, chỉnh sửa hồ sơ, bạn bè và hồ sơ public. Chọn tối đa ba sách qua danh sách xổ xuống; sách chưa xong cần xác nhận.
-- Hồ sơ public có tên, tổng giờ và bìa sách. Chạm bìa mới xem phiên đọc và nội dung được chia sẻ. Public nghĩa là mọi thành viên đã đăng nhập, không chỉ bạn bè. Sách private giấu chi tiết; ghi chú private giấu nội dung. Tổng giờ gồm thời gian đọc sách private.
-- Bạn bè chỉ hiện quan hệ/lời mời đã có; tìm người khác bằng tên rồi bấm Tìm. Không có gợi ý tự động.
-- Thư viện khách và từng tài khoản tách riêng. Đăng nhập không tự nhập dữ liệu khách; có nút sao chép vào tài khoản trống, bắt đầu ở private.
-- Đồng bộ chạy yên lặng khi app đang mở, sau khi lưu xong phiên. Lỗi thì giữ bản local và hiển thị vấn đề; có nút thử lại trong Cài đặt. Không bảo đảm upload tiếp khi app đóng.
-- Nếu cloud có bản mới hơn, xuất JSON giữ thay đổi local trước khi tải bản cloud. Chưa tự gộp xung đột từ nhiều máy, chưa có lịch sử sao lưu nhiều phiên bản. Ảnh được thu nhỏ; giới hạn bản thư viện là 12 MB.
-- **Cài đặt → Hướng dẫn sử dụng** giải thích các chức năng. Âm thanh tạm tắt; nhắc đọc bằng thông báo đẩy tạm hoãn.
+## Quyền riêng tư
 
-Xem [cấu trúc dự án và giải thích từng file](PROJECT_STRUCTURE.md), gồm luồng Local/Cloud, bảng dữ liệu và những file phải giữ riêng.
+Thư viện private chỉ chủ tài khoản đọc được. Public nghĩa là mọi thành viên đã đăng nhập, không chỉ bạn bè. Với sách public, ngày/thời lượng/mốc trang của phiên được công khai; nội dung ghi chú/cảm nghĩ chỉ hiện khi riêng mục đó được chọn public. Tổng giờ gồm thời gian đọc sách private nhưng không lộ tên hoặc chi tiết sách private.
 
-## Cài đặt từ mã nguồn
+Tra cứu chỉ gửi ISBN/từ khóa hoặc đường dẫn sách tới nguồn tra cứu, không gửi thư viện hay ghi chú. Nguồn Việt trên web đi qua chức năng `catalog` của Supabase để tương thích trình duyệt; yêu cầu đăng nhập, giới hạn nguồn và dung lượng phản hồi. Không có nguồn nào bảo đảm bao phủ mọi ISBN/ấn bản.
 
-### Chuẩn bị
+Repo không chứa mật khẩu demo, tài liệu Word riêng, dữ liệu người dùng hay khóa ký Android. Publishable key được thiết kế cho client công khai; không dùng khóa secret/service-role trong mã ứng dụng.
 
-Để build có phần online, tạo `app/.env.local` (không commit) chứa:
+## Chạy mã nguồn
+
+Cần Node.js tương thích Expo, pnpm; Android cần Android SDK/JDK phù hợp. Sau khi clone:
+
+```sh
+cd app
+pnpm install --frozen-lockfile
+```
+
+Tạo `app/.env.local` với project URL và **publishable key** Supabase của bạn:
 
 ```dotenv
 EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
-Khóa publishable được nhúng trong APK; tuyệt đối không dùng secret/service-role key. Với dự án Supabase mới, chạy `app/supabase/schema.sql` một lần, tiếp theo `app/supabase/upgrade-0.4.sql` bằng SQL Editor rồi tạo tài khoản demo đã xác nhận trong Authentication. Các bảng đều bật Row Level Security; phần chia sẻ được tạo trong giao dịch khi đồng bộ. Schema không chứa tài khoản hoặc mật khẩu demo. Với server đã có 0.3, chỉ chạy `upgrade-0.4.sql`, không chạy lại schema ban đầu.
-
-
-- Node.js 24 và pnpm 11.
-- Android Studio cùng Java tương thích với Gradle của dự án.
-- Android SDK Platform 36, Build Tools 36.0.0 và Platform Tools. Quá trình build có thể cần tải thêm NDK/CMake tương ứng.
-- Điện thoại Android bật **Gỡ lỗi USB** và đã cho phép máy tính kết nối.
-- Thiết lập `JAVA_HOME`, `ANDROID_HOME` và thêm Node.js cùng Android Platform Tools vào `PATH` theo vị trí cài đặt trên máy của bạn.
-
-### Cài thư viện và chạy lần đầu
-
-Tải hoặc clone repository, mở terminal tại thư mục gốc, sau đó chạy:
+Dự án Supabase mới chạy lần lượt `schema.sql`, `upgrade-0.4.sql`, `upgrade-0.5.sql` trong `app/supabase/`. Dự án đã chạy 0.4 chỉ chạy migration 0.5; sao lưu trước khi nâng cấp. Triển khai Edge Function `catalog` từ `app/supabase/functions/catalog/index.ts`; cấu hình nguồn web phù hợp dự án của bạn. Function kiểm tra người dùng qua Supabase Auth, không dùng service-role để đọc thư viện.
 
 ```sh
-cd app
-pnpm install --frozen-lockfile
-pnpm android
-```
-
-Dự án dùng cấu trúc thư viện phẳng để tránh đường dẫn quá dài khi build Android trên Windows. Thư mục native `android` được tạo trong quá trình chuẩn bị build và không lưu trong repository.
-
-Chọn điện thoại khi được hỏi, giữ màn hình mở khóa và chấp nhận yêu cầu cài đặt nếu điện thoại hiển thị. Lần đầu cần Internet để tải thư viện và công cụ build. Không cần cài Expo Go.
-
-### Chạy lại bản phát triển qua USB
-
-Sau khi bản development đã được cài, không cần build lại cho mỗi thay đổi giao diện hoặc mã JavaScript:
-
-```sh
-adb reverse tcp:8081 tcp:8081
-pnpm start --localhost --port 8081
-```
-
-Mở ReadSession, chọn máy chủ gần đây hoặc nhập `http://127.0.0.1:8081` trong màn hình development server. Giữ máy chủ chạy trong khi sử dụng bản development.
-
-Trên Windows PowerShell, nếu gặp lỗi kết nối do localhost dùng IPv6, đặt tùy chọn này trước khi khởi động máy chủ:
-
-```powershell
-$env:NODE_OPTIONS = "--dns-result-order=ipv4first"
-```
-
-Nếu PowerShell chặn file `.ps1`, dùng `pnpm.cmd` thay cho `pnpm` và `npm.cmd` thay cho `npm`; không cần thay đổi execution policy.
-
-### Kiểm tra mã nguồn
-
-Chạy trong thư mục `app`:
-
-```sh
+pnpm web                 # Phát triển web
+pnpm android             # Build development lên điện thoại
 pnpm typecheck
 pnpm test
-pnpm export:android
+pnpm export:web          # Xuất website tĩnh vào app/dist
 ```
 
-Lệnh `export:android` tạo bundle Android để kiểm tra mã; kết quả đó không phải file APK.
+Android development qua USB có thể cần `adb reverse tcp:8081 tcp:8081` rồi `pnpm start --localhost --port 8081`. PowerShell chặn `npm.ps1` thì dùng `npm.cmd`/`pnpm.cmd`.
 
-### Ký bản release
+## Phát hành web và APK
 
-Bản release sử dụng khóa ký riêng. Cấu hình ký được tạo lại bởi plugin của dự án; khóa và mật khẩu không nằm trong repository. Khi tự build release, cần chuẩn bị khóa tại `app/.private/readsession-release.jks` với alias `readsession` và file `app/.private/signing.properties` chứa các thuộc tính `storePassword`, `keyPassword`. Thiếu thông tin ký, build release sẽ dừng thay vì dùng khóa debug.
+Web dùng website tĩnh GitHub Pages, Supabase hiện có xử lý đăng nhập/dữ liệu; không chạy Node server trên GitHub. Cấu hình `experiments.baseUrl` hiện là `/ReadTracker`. Mã điều hướng ở trong trang nên tải lại URL gốc không cần rewrite.
 
-Giữ khóa ký cho các bản cập nhật tiếp theo. Không đưa thư mục `.private` lên GitHub.
+Sau `pnpm export:web`, chủ repo có thể chạy `node scripts/deploy-web.cjs` từ thư mục app. Script chỉ đưa nội dung `dist` cùng `.nojekyll` lên nhánh `gh-pages`; chọn GitHub Pages → Deploy from a branch → `gh-pages` → `/ (root)`. Nếu fork, cần sửa và kiểm tra đích deploy, baseUrl, cấu hình Supabase/CORS. Xem [hướng dẫn Expo](https://docs.expo.dev/guides/publishing-websites/#github-pages).
 
-## Cài bằng APK
+APK release cần khóa ký riêng ổn định. Plugin `withReleaseSigning` đọc tệp ký riêng trên máy build. Không chia sẻ hoặc thay khóa giữa các lần cập nhật của cùng ứng dụng.
 
-1. Trên điện thoại, [tải ReadSession 0.4.0 demo](releases/ReadSession-0.4.0-demo.apk?raw=true).
-2. Mở APK và cho phép trình duyệt hoặc trình quản lý tệp cài ứng dụng khi Android yêu cầu.
-3. Cài đặt rồi mở ReadSession. Ứng dụng chạy độc lập, kể cả khi không kết nối máy tính.
+## Kiểm chứng bản demo
 
-Yêu cầu Android 7.0 trở lên, thiết bị ARM 32-bit hoặc 64-bit. Nếu đã cài bản development và gặp lỗi xung đột chữ ký, gỡ bản cũ trước khi cài; thao tác này xóa dữ liệu của bản cũ.
-
-Nếu đang dùng APK release 0.1.0, 0.2.0 hoặc 0.3.0, có thể cài đè 0.4.0 để giữ dữ liệu: các bản dùng cùng khóa ký. Không cần gỡ bản release cũ.
-
-APK dùng chữ ký release riêng và chứa sẵn mã ứng dụng. Đây là bản draft: quá trình build và chữ ký đã được kiểm tra; bản release này cần được thử nghiệm thêm trên điện thoại. Có thể đối chiếu tệp tải về với [mã SHA-256](releases/ReadSession-0.4.0-demo.apk.sha256).
-
-## Lưu ý khi thử nghiệm
-
-Nếu ứng dụng bị hệ thống tắt giữa phiên, ReadSession khôi phục bản nháp ở mốc lưu gần nhất và tạm dừng. Hãy kiểm tra lại thời lượng trước khi lưu. Khi nhận cuộc gọi, tạm dừng timer thủ công. Mục tiêu phiên không tự dừng timer. Thống kê ngày dùng ngày của phiên đọc (phiên qua nửa đêm thuộc ngày bắt đầu); phiên nhập tay dùng ngày đã chọn.
-
-Repository chứa mã nguồn, schema Supabase và APK đã kiểm tra. Tài khoản demo, mật khẩu, khóa quản trị và cấu hình máy cá nhân không nằm trong repository. File mới được bỏ qua mặc định; khi bổ sung mã hoặc tài nguyên, cần kiểm tra nội dung và cập nhật danh sách cho phép trong `.gitignore`.
+TypeScript và kiểm thử model/sync/catalog; kiểm thử SQL giao dịch rollback về xung đột, gửi lặp, xóa, quyền riêng tư và bảo vệ tài khoản; kiểm tra web đăng nhập/tra cứu thực tế; build web và APK, kiểm tra chữ ký và tệp công khai. Các kiểm thử này không thay thế việc thử APK trên từng dòng điện thoại.

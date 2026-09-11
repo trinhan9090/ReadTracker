@@ -1,6 +1,6 @@
 # ReadSession — cấu trúc dự án và luồng hoạt động
 
-Tài liệu cho bản demo Android 0.4.0. Đọc cùng [README.md](README.md) để cài đặt hoặc chạy dự án. File này giải thích các file do dự án quản lý; thư viện bên ngoài và file Android sinh tự động được mô tả theo nhóm vì chúng được tạo lại khi cài/build.
+Tài liệu cho bản demo Android + web 0.5.0. Đọc cùng [README.md](README.md) để cài đặt hoặc chạy dự án. File này giải thích các file do dự án quản lý; thư viện bên ngoài và file Android sinh tự động được mô tả theo nhóm vì chúng được tạo lại khi cài/build.
 
 ## 1. Bản đồ thư mục
 
@@ -10,7 +10,9 @@ ReadTracker/                     Tên thư mục trên PC; tên app là ReadSess
 ├── PROJECT_STRUCTURE.md         Tài liệu này
 ├── .gitignore                  Danh sách file được phép đưa lên Git
 ├── app/                        Mã nguồn ứng dụng
-│   ├── App.tsx                 Điểm vào giao diện
+│   ├── App.tsx                 Điểm vào Android
+│   ├── App.web.tsx             Điểm vào web, bắt buộc đăng nhập
+│   ├── scripts/                Công cụ phát hành web
 │   ├── index.ts                Đăng ký ứng dụng với Expo
 │   ├── app.json                Tên, phiên bản, quyền và cấu hình Android
 │   ├── package.json            Thư viện và các lệnh phát triển
@@ -51,13 +53,33 @@ ReadTracker/                     Tên thư mục trên PC; tên app là ReadSess
 | `SyncPanel.tsx` | Trang riêng trong Cài đặt: giải thích Local/Cloud, đăng nhập/đăng xuất, thử đồng bộ, tải bản cloud và sao chép thư viện local vào tài khoản trống. Xác nhận trước khi thay dữ liệu. |
 | `UserGuide.tsx` | Hướng dẫn sử dụng trong Cài đặt, bằng tiếng Việt/Anh: sách, phiên, mục tiêu, quyền riêng tư, bạn bè, đồng bộ và các tính năng tạm hoãn. |
 | `backend.ts` | Khởi tạo kết nối Supabase từ cấu hình môi trường. Lưu phiên đăng nhập bằng SecureStore, giới hạn thời gian yêu cầu mạng và hỗ trợ làm mới đăng nhập. |
-| `online.ts` | Kiểu dữ liệu online; thu nhỏ ảnh; tải và gửi bản thư viện. Khi gửi, chỉ định tài khoản dự kiến để server chặn tình huống đổi tài khoản giữa lúc xử lý. |
+| `online.ts` | Tải thư viện và gọi RPC gửi các thao tác có mã chống lặp. Chỉ định tài khoản dự kiến để server chặn đổi tài khoản giữa lúc gửi. Thu nhỏ ảnh thành JPEG data URL dùng chung thiết bị. |
 | `useCloud.ts` | Điều phối tải ban đầu và tự đồng bộ khi thư viện thay đổi, chờ kết thúc phiên đọc. Thử lại khi app hoạt động; chỉ đưa lỗi ra giao diện. Giữ bản local khi lỗi/xung đột. |
 | `IsbnTools.tsx` | Nhập/quét ISBN bằng camera, quản lý quyền camera và việc tra cứu. ISBN không bắt buộc. Không có kết quả vẫn nhập sách thủ công được. |
 | `isbn.ts` | Chuẩn hóa và kiểm tra chữ số kiểm tra ISBN-10/13; tra Open Library và Google Books. Không lọc theo ngôn ngữ sách. |
 | `catalog.ts` | Tìm kiếm và đọc metadata công khai từ website Nhã Nam/NXB Trẻ; kiểm tra nguồn URL và ISBN khớp chính xác. Chỉ đọc thông tin thư mục sách, không lấy nội dung sách. Có thể cần cập nhật khi website đổi cấu trúc. |
 | `BookSearch.tsx` | Giao diện tìm sách Việt theo tên, chọn nguồn, xem kết quả và xác nhận trước khi điền ô trống. Không tự thay ISBN đã nhập bằng ISBN của ấn bản khác. |
-| `sound.tsx` | Lớp nút bấm chung. Bản 0.4 tạm tắt âm thanh hoàn toàn, kể cả khi dữ liệu cũ từng bật âm thanh. Không tạo bộ phát audio. |
+| `sound.tsx` | Lớp nút bấm chung. Bản 0.5 tiếp tục tạm tắt âm thanh hoàn toàn, kể cả khi dữ liệu cũ từng bật âm thanh. Không tạo bộ phát audio. |
+
+### File mới cho web và đồng bộ 0.5
+
+| File | Trách nhiệm |
+| --- | --- |
+| `app/App.web.tsx` | Đăng nhập web, giữ phiên, mở Main bằng ID tài khoản; đăng xuất quay về trang đăng nhập. Khởi tạo cách tra nguồn sách Việt qua proxy. |
+| `app/src/sync.ts` | So sánh dữ liệu gốc/thiết bị/cloud theo từng sách, phiên và cài đặt; bảo toàn thay đổi khi yêu cầu đang gửi; giải quyết xung đột và trường hợp sách cha bị xóa. |
+| `app/src/storage.web.ts` | Đọc/ghi bản phục hồi tạm theo tài khoản trong sessionStorage của tab, chỉ khi có việc chưa đồng bộ hoặc timer. Không lưu thư viện offline lâu dài. |
+| `app/src/backend.web.ts` | Supabase client dành cho trình duyệt; lưu phiên đăng nhập bằng cơ chế browser của Supabase, làm mới token và giới hạn thời gian mạng. |
+| `app/src/IsbnTools.web.tsx` | Nhập và tra ISBN, tìm theo tên, không nhập module camera. |
+| `app/src/dialogs.ts`, `dialogs.web.ts` | Hộp thoại xác nhận Android hoặc trình duyệt. |
+| `app/src/transfer.ts`, `transfer.web.ts` | Chia sẻ/chọn file native hoặc tải/chọn file trong trình duyệt; giữ giới hạn nhập JSON 30 MB. |
+| `app/src/catalogPage.ts` | Tải HTML nguồn Việt trực tiếp trên Android và trong kiểm thử parser. |
+| `app/src/catalogPage.web.ts` | Tải HTML qua Edge Function catalog bằng phiên đăng nhập; tránh giới hạn CORS của nguồn Việt. |
+| `app/tests/sync.test.ts` | Gộp hai thiết bị, xung đột, sửa trong lúc gửi, phiên mới gặp sách bị xóa, lựa chọn khôi phục/xóa, tính ổn định khi gộp lặp lại. |
+| `app/supabase/upgrade-0.5.sql` | RPC compare-and-set theo từng bản ghi, xác nhận yêu cầu đã nhận, chặn giao thức cũ sau lần ghi 0.5. |
+| `app/supabase/functions/catalog/index.ts` | Proxy giới hạn ở Nhã Nam/NXB Trẻ. Kiểm tra đăng nhập, nguồn URL, kích thước phản hồi, timeout, giới hạn yêu cầu/cache theo tiến trình. Không đọc thư viện riêng. Chạy trên Deno, tách khỏi TypeScript app. |
+| `app/scripts/deploy-web.cjs` | Chỉ xuất nội dung dist lên nhánh gh-pages, giữ lịch sử nhánh; không đưa .env, dữ liệu hay source riêng vào website. |
+
+Metro chọn các module có đuôi .web cho web khi import không ghi phần mở rộng. Riêng catalog dùng transport được khởi tạo bởi App.web để cùng dùng parser TypeScript trong kiểm thử Node.
 
 ### File cấu hình, tài nguyên và kiểm thử
 
@@ -112,22 +134,27 @@ Gỡ app hoặc xóa dữ liệu app sẽ xóa dữ liệu local. Bản cloud đ
 | `rs_sync_for_owner` | Kiểm tra đúng tài khoản đang gửi trước khi gọi `rs_sync`, tránh gửi nhầm thư viện khi đổi tài khoản. |
 | `rs_refresh_reading` | Hàm nội bộ tạo lại phiên đọc public và tổng giây; client không có quyền gọi trực tiếp. |
 
-`app/supabase/schema.sql` dựng cấu trúc ban đầu 0.3 cho dự án mới. Sau đó chạy `app/supabase/upgrade-0.4.sql`. Dự án đang chạy 0.3 chỉ cần chạy file nâng cấp. File nâng cấp giữ nguyên bản thư viện private và revision, bổ sung phần public từ bản đã đồng bộ.
+`app/supabase/schema.sql` dựng cấu trúc ban đầu 0.3 cho dự án mới. Sau đó chạy `app/supabase/upgrade-0.4.sql`. Tiếp đó chạy `upgrade-0.5.sql`. Dự án đang chạy 0.4 chỉ cần migration 0.5. File nâng cấp giữ nguyên bản thư viện private và revision, bổ sung phần public từ bản đã đồng bộ.
 
 Public trong demo là **mọi thành viên đã đăng nhập**, không giới hạn ở bạn bè. Sách private không lộ chi tiết; ghi chú private không lộ nội dung. Tổng giờ đọc của tài khoản được công khai theo thiết kế đã chốt.
 
 ## 4. Luồng dữ liệu chính
 
-1. Người dùng nhập sách hoặc lưu phiên trong `ReadSession.tsx`.
-2. `model.ts` kiểm tra/tính toán; `storage.ts` ghi ngay vào thư viện local đúng tài khoản.
-3. Nếu đã đăng nhập, dữ liệu được đánh dấu cần đồng bộ. Chế độ khách không tự gửi thư viện lên cloud.
-4. `useCloud.ts` chờ khoảng 1,5 giây sau thay đổi và chờ lưu xong phiên đang đọc, rồi gọi `online.ts` để gửi bản đầy đủ.
-5. Supabase kiểm tra chủ tài khoản và revision. Thành công thì lưu thư viện và cập nhật phần public cùng nhau. Xung đột thì từ chối ghi, giữ nguyên dữ liệu trên máy.
-6. `PublicProfile.tsx` chỉ đọc các bảng public. Chạm bìa mới mở nội dung chi tiết.
+1. Người dùng lưu sách/phiên; model kiểm tra, storage lưu trước khi gửi mạng. Android dùng SQLite, web chỉ giữ phần công việc cần phục hồi tạm trong tab.
+2. useCloud tải thư viện hiện tại và gộp với dữ liệu gốc đã nhận trước đó (syncBase). Các mục sửa độc lập được giữ lại từ cả hai phía.
+3. Các thay đổi được tạo thành thao tác có opId, ghi vào syncOutbox trước khi gọi mạng. Yêu cầu mất phản hồi được gửi lại nguyên vẹn.
+4. rs_apply_ops kiểm tra auth.uid trùng expected_owner, khóa thư viện của tài khoản, so sánh bản gốc từng mục. Nếu khác cả bản gốc lẫn bản gửi thì trả xung đột; không ghi đè mục đó.
+5. rs_sync_receipts lưu dấu yêu cầu đã nhận để retry không tạo phiên trùng. Thư viện private và phần public được cập nhật trong cùng giao dịch bằng writer nội bộ, client không được gọi writer trực tiếp.
+6. Client nhận kết quả, giữ cả thay đổi phát sinh trong lúc gửi. Xung đột xuất hiện trong SyncPanel với hai bản để người dùng lựa chọn. Sách bị xóa ở cloud không âm thầm làm mất phiên mới còn trên thiết bị.
+7. rs_sync_clients đánh dấu tài khoản đã dùng giao thức 0.5. Các lần ghi snapshot 0.4 sau đó bị chặn bằng RS_UPGRADE_REQUIRED; dữ liệu cũ vẫn đọc được.
 
-Tự đồng bộ hoạt động khi app đang mở/hoạt động, thử lại khoảng 30 giây khi có thay đổi chưa lên cloud hoặc khi quay lại app. Không có dịch vụ bảo đảm tiếp tục upload sau khi app đóng. Sửa hồ sơ và quan hệ bạn bè là thao tác cần mạng, không nằm trong hàng chờ thư viện.
+Mạng gửi thao tác riêng lẻ, nhưng cơ sở dữ liệu vẫn giữ snapshot thư viện bên trong rs_libraries và tái tạo phần public. Cách này phù hợp demo nhỏ, chưa phải hệ thống đồng bộ quy mô lớn hoặc lịch sử nhiều phiên bản. Mỗi lô tối đa 50 thao tác, payload tối đa 12 MB. Cài đặt được xem là một mục chung khi giải quyết xung đột.
 
-Đăng nhập mở thư viện tài khoản; không tự trộn thư viện khách. Có nút sao chép thư viện local vào tài khoản trống, bắt đầu ở private. Đăng xuất giữ dữ liệu từng tài khoản trên máy và quay về thư viện khách.
+App tự kiểm tra khoảng 10 giây khi hoạt động và khi quay lại ứng dụng. Tạm dừng lúc timer chưa kết thúc, modal đang mở, ở trang Cá nhân hoặc trang cài đặt đang nhập mục tiêu. Sau khi lưu, chuyển về Phiên/Sách hoặc Đồng bộ để tiếp tục. Không có timer handoff hay dịch vụ upload bảo đảm khi app đóng. Hồ sơ và bạn bè là thao tác online riêng, không trong outbox.
+
+Android giữ riêng khách và mỗi tài khoản. Web bắt buộc đăng nhập, thư viện trong bộ nhớ; sessionStorage chỉ giữ tạm công việc chưa gửi và timer, được xóa khi đã đồng bộ. Đóng tab/xóa browser data có thể mất bản tạm; giới hạn sessionStorage cũng có thể làm thao tác lưu báo lỗi. Trình duyệt cảnh báo khi rời trang với thay đổi hoặc form chưa lưu.
+
+Thông tin điều phối sync không xuất trong JSON người dùng và không gửi vào snapshot cloud. Nhập JSON giữ baseline của tài khoản hiện tại để bản phục hồi tham gia cùng cơ chế đồng bộ.
 
 ## 5. Quy tắc ISBN và nhập tay
 
@@ -165,10 +192,14 @@ Nguồn đối chiếu: [website Nhã Nam](https://nhanam.vn), [Thần thoại S
 
 Không cần mô tả từng file trong `node_modules`, `.gradle`, `.cxx`, `build` vì đó là đầu ra của công cụ. Không xóa thư viện, khóa ký hay dữ liệu chỉ vì chúng bị Git ignore.
 
-## 7. Trạng thái bản 0.4
+## 7. Trạng thái bản 0.5
 
 Đã tách Cá nhân/Đồng bộ, bỏ gợi ý bạn bè, thêm điều hướng, tổng giờ public, danh sách xổ xuống chọn ba sách, chi tiết từ bìa sách, hướng dẫn, lựa chọn Local/Đăng nhập một lần và tìm sách Việt theo tên. Đồng bộ thường chạy yên lặng, chỉ hiện vấn đề.
 
-Âm thanh tạm tắt. Thông báo đẩy “Nhắc đọc” tạm hoãn theo yêu cầu, chưa cần Firebase/Expo push. Cloud chưa gộp xung đột từ hai máy và chưa có lịch sử sao lưu nhiều phiên bản.
+Âm thanh tạm tắt. Thông báo đẩy “Nhắc đọc” tạm hoãn theo yêu cầu, chưa cần Firebase/Expo push. Đã thêm web GitHub Pages, gộp thay đổi từng mục, outbox chống lặp và lựa chọn xung đột. Chưa có lịch sử sao lưu nhiều phiên bản.
 
-Kiểm tra trước phát hành: TypeScript, 24 kiểm thử tự động, tra cứu thực tế hai nguồn sách, kiểm thử SQL về quyền riêng tư/tổng thời gian/xung đột trong giao dịch hoàn tác, kiểm tra API bảo vệ đổi tài khoản, build release, chữ ký và quét file riêng. Chưa thay thế việc thử giao diện bản 0.4 trên điện thoại thật.
+Kiểm tra trước phát hành: TypeScript, 32 kiểm thử tự động, tra cứu thực tế hai nguồn sách, kiểm thử SQL về quyền riêng tư/tổng thời gian/xung đột trong giao dịch hoàn tác, kiểm tra API bảo vệ đổi tài khoản, build release, chữ ký và quét file riêng. Đã kiểm tra web đăng nhập và tìm sách Việt; vẫn cần thử APK 0.5 trên điện thoại thật của người dùng.
+
+## 8. Điểm tiếp tục và sao lưu khi phát triển
+
+`docs/UPGRADE_05_PROGRESS_LOCAL.md` ghi mốc đang làm và việc còn lại. `.work/backup-05.cjs` lưu mã nguồn cùng snapshot của các tài khoản demo vào `.work/backups/<thời điểm>/`; chỉ thư mục có COMPLETE.json mới là backup đủ. `.work/LATEST_BACKUP.txt` trỏ bản gần nhất. Tất cả các file này là riêng, không phát hành. Đó là sao lưu tại lúc thực hiện, không phải dịch vụ backup cloud tự động cho mọi người dùng.

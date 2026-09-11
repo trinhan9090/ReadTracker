@@ -2,9 +2,10 @@
   "name": "readsession",
   "description": "Personal offline reading timer and journal for Android",
   "license": "0BSD",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo/metro-runtime": "~57.0.15",
     "@supabase/supabase-js": "^2.116.0",
     "expo": "~57.0.21",
     "expo-audio": "~57.0.4",
@@ -20,9 +21,11 @@
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.3",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-url-polyfill": "^4.0.0"
+    "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "~0.21.2"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -33,7 +36,9 @@
     "android": "expo run:android --device",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "export:android": "expo export --platform android"
+    "export:android": "expo export --platform android",
+    "web": "expo start --web",
+    "export:web": "expo export --platform web"
   },
   "private": true
 }

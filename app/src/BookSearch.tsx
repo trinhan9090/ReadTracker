@@ -1,5 +1,6 @@
+import { Alert } from "./dialogs";
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, Linking, Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 import { Button, Field, type Palette } from "./ui";
 import { loadVietnameseBook, searchVietnameseBooks, type CatalogResult, type VietnameseSource } from "./catalog";
 import type { IsbnBook } from "./isbn";

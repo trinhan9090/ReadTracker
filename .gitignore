@@ -106,3 +106,25 @@
 !/app/supabase/upgrade-0.4.sql
 !/releases/ReadSession-0.4.0-demo.apk
 !/releases/ReadSession-0.4.0-demo.apk.sha256
+
+# Reviewed 0.5 shared sync, web adapters and deployment source.
+!/app/App.web.tsx
+!/app/src/sync.ts
+!/app/src/backend.web.ts
+!/app/src/storage.web.ts
+!/app/src/dialogs.ts
+!/app/src/dialogs.web.ts
+!/app/src/transfer.ts
+!/app/src/transfer.web.ts
+!/app/src/IsbnTools.web.tsx
+!/app/src/catalogPage.ts
+!/app/src/catalogPage.web.ts
+!/app/tests/sync.test.ts
+!/app/supabase/upgrade-0.5.sql
+!/app/supabase/functions/
+!/app/supabase/functions/catalog/
+!/app/supabase/functions/catalog/index.ts
+!/app/scripts/
+!/app/scripts/deploy-web.cjs
+!/releases/ReadSession-0.5.0-demo.apk
+!/releases/ReadSession-0.5.0-demo.apk.sha256

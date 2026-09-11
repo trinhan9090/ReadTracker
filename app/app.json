@@ -2,12 +2,12 @@
   "expo": {
     "name": "ReadSession",
     "slug": "readsession",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.readsession.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
@@ -42,7 +42,16 @@
       "expo-secure-store"
     ],
     "platforms": [
-      "android"
-    ]
+      "android",
+      "web"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "ReadSession"
+    },
+    "experiments": {
+      "baseUrl": "/ReadTracker"
+    }
   }
 }
