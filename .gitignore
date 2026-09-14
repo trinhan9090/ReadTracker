@@ -128,3 +128,6 @@
 !/app/scripts/deploy-web.cjs
 !/releases/ReadSession-0.5.0-demo.apk
 !/releases/ReadSession-0.5.0-demo.apk.sha256
+
+!/app/src/responsive.css
+!/app/src/web-assets.d.ts

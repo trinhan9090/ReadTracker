@@ -1,0 +1,57 @@
+/* Web layout only: Android retains the existing single-column presentation. */
+#readsession-workspace {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin-inline: auto;
+  min-height: 0;
+  overflow-wrap: anywhere;
+}
+#workspace-scroll > div {
+  padding-inline: clamp(16px, 3vw, 64px) !important;
+  min-width: 0;
+}
+#workspace-header {
+  padding-inline: clamp(16px, 3vw, 64px) !important;
+}
+#reading-overview, #reading-summary, #reading-timer, #shelf-grid {
+  min-width: 0;
+}
+#shelf-grid > div { min-width: 0; }
+#workspace-scroll { min-height: 0; }
+@media (min-width: 700px) {
+  #shelf-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px !important;
+  }
+  #reading-dialog {
+    width: calc(100% - 48px);
+    max-width: 860px;
+    max-height: calc(100dvh - 48px);
+    height: calc(100dvh - 48px);
+    min-height: 0;
+    margin: auto;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 16px 64px rgb(0 0 0 / 12%);
+  }
+}
+@media (min-width: 1000px) {
+  #reading-overview {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 32px !important;
+  }
+  #reading-timer > div { padding: clamp(24px, 3vw, 48px) !important; }
+}
+@media (min-width: 1400px) {
+  #shelf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1900px) {
+  #shelf-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 699px) {
+  #reading-dialog { width: 100%; min-width: 0; }
+}

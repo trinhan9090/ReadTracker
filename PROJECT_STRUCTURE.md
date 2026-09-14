@@ -203,3 +203,9 @@ Kiểm tra trước phát hành: TypeScript, 32 kiểm thử tự động, tra c
 ## 8. Điểm tiếp tục và sao lưu khi phát triển
 
 `docs/UPGRADE_05_PROGRESS_LOCAL.md` ghi mốc đang làm và việc còn lại. `.work/backup-05.cjs` lưu mã nguồn cùng snapshot của các tài khoản demo vào `.work/backups/<thời điểm>/`; chỉ thư mục có COMPLETE.json mới là backup đủ. `.work/LATEST_BACKUP.txt` trỏ bản gần nhất. Tất cả các file này là riêng, không phát hành. Đó là sao lưu tại lúc thực hiện, không phải dịch vụ backup cloud tự động cho mọi người dùng.
+
+## Giao diện web co giãn theo trình duyệt
+
+`app/src/responsive.css` chỉ được nhập từ `App.web.tsx`; `web-assets.d.ts` khai báo kiểu import CSS. Các nativeID trong `ReadSession.tsx` xác định khung chính, header, nội dung cuộn, timer, thống kê, tủ sách và hộp thoại.
+
+Khung web dùng toàn bộ chiều rộng cửa sổ, với khoảng đệm hai bên tự điều chỉnh. Từ 1.000px, timer và thống kê nằm cạnh nhau. Tủ sách tăng từ một cột lên hai cột ở 700px, ba cột ở 1.400px và bốn cột ở 1.900px. Hộp thoại căn giữa trên desktop, giới hạn chiều cao theo cửa sổ để nội dung bên trong cuộn được; màn hình nhỏ dùng bố cục dọc. CSS không được nạp vào APK Android.

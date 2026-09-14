@@ -694,9 +694,9 @@ export function Main({ account }: { account: LoginSession | null }) {
     );
   return (
     <SoundProvider enabled={state.settings.soundEnabled ?? false}>
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, ...(Platform.OS === "web" ? { width: "100%", maxWidth: 1100, alignSelf: "center" } as const : {}) }}>
+    <SafeAreaView nativeID="readsession-workspace" style={{ flex: 1, backgroundColor: c.bg }}>
       <StatusBar style={c === dark ? "light" : "dark"} />
-      <View style={styles.header}>
+      <View nativeID="workspace-header" style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text
             style={{
@@ -728,6 +728,7 @@ export function Main({ account }: { account: LoginSession | null }) {
       {!!cloud.status && <Text accessibilityLiveRegion="polite" style={{ color: c.danger, paddingHorizontal: 20, paddingBottom: 8 }}>{cloud.status}</Text>}
       <ScrollView
         ref={scroll}
+        nativeID="workspace-scroll"
         contentContainerStyle={{
           padding: 20,
           paddingTop: 0,
@@ -738,6 +739,8 @@ export function Main({ account }: { account: LoginSession | null }) {
       >
         {tab === "sessions" && (
           <>
+            <View nativeID="reading-overview" style={{ gap: 18 }}>
+            <View nativeID="reading-timer" style={{ gap: 18, minWidth: 0 }}>
             {card(
               <>
                 <View
@@ -848,6 +851,8 @@ export function Main({ account }: { account: LoginSession | null }) {
                 )}
               </>,
             )}
+            </View>
+            <View nativeID="reading-summary" style={{ gap: 18, minWidth: 0 }}>
             <View style={{ flexDirection: "row", gap: 10 }}>
               {[
                 [
@@ -936,6 +941,8 @@ export function Main({ account }: { account: LoginSession | null }) {
               {label("Ngày 1", "Day 1", 11)}
               {label("Xanh: đạt mục tiêu · Xám: chưa đạt", "Green: goal reached · Gray: below goal", 11)}
             </View>
+            </View>
+            </View>
             <View
               style={{
                 flexDirection: "row",
@@ -1021,7 +1028,7 @@ export function Main({ account }: { account: LoginSession | null }) {
               ))}
             </ScrollView>
             {card(
-              books
+              <View nativeID="shelf-grid" style={{ gap: 13 }}>{books
                 .filter(
                   (b) =>
                     (b.title + " " + b.author)
@@ -1038,7 +1045,7 @@ export function Main({ account }: { account: LoginSession | null }) {
                     setBookId(b.id);
                     setModal("detail");
                   }),
-                ),
+                )}</View>,
             )}
             {!books.length &&
               label(
@@ -1205,7 +1212,7 @@ export function Main({ account }: { account: LoginSession | null }) {
         animationType="slide"
         onRequestClose={closeModal}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+        <SafeAreaView nativeID="reading-dialog" style={{ flex: 1, backgroundColor: c.bg }}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={{ flex: 1 }}

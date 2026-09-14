@@ -1,3 +1,4 @@
+import "./src/responsive.css";
 import { configureCatalogTransport } from "./src/catalog";
 import { catalogPage } from "./src/catalogPage.web";
 import "@expo/metro-runtime";
